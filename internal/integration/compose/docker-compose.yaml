@@ -1,0 +1,25 @@
+version: "3.7"
+
+services:
+
+  mysql8:
+    platform: linux/amd64
+    image: mysql
+    environment:
+      MYSQL_DATABASE: test
+      MYSQL_ROOT_PASSWORD: pass
+    healthcheck:
+      test: mysqladmin ping -ppass
+    ports:
+      - "3308:3306"
+
+  postgres:
+    platform: linux/amd64
+    image: postgres
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_PASSWORD: pass
+    healthcheck:
+      test: pg_isready -U postgres
+    ports:
+      - "5434:5432"

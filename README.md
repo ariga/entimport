@@ -128,11 +128,15 @@ go run ariga.io/entimport/cmd/entimport -dialect postgres -dsn "..." -schema-pat
 ## Future Work
 
 - Index support (currently Unique index is supported).
-- Support for all types (for example `uuid` in Postgres).
+- Support for all data types (for example `uuid` in Postgres).
 - Support for Default value in columns.
+- Support for editing schema both manually and automatically (real upsert and not only overwrite)
+- Postgres special types: postgres.NetworkType, postgres.BitType, *schema.SpatialType, postgres.CurrencyType,
+  postgres.XMLType, postgres.ArrayType, postgres.UserDefinedType.
 
-## Caveats
+### Known Caveats:
 
+- Schema files are overwritten by new calls to `entimport`.
 - There is no difference in DB schema between `O2O Bidirectional` and `O2O Same Type` - both will result in the same
   `ent` schema.
 - There is no difference in DB schema between `M2M Bidirectional` and `M2M Same Type` - both will result in the same

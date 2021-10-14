@@ -3936,10 +3936,8 @@ func (_m *Inspector) InspectSchema(ctx context.Context, name string, opts *schem
 	var r0 *schema.Schema
 	if rf, ok := ret.Get(0).(func(context.Context, string, *schema.InspectOptions) *schema.Schema); ok {
 		r0 = rf(ctx, name, opts)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*schema.Schema)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*schema.Schema)
 	}
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string, *schema.InspectOptions) error); ok {

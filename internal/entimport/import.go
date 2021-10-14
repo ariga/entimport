@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 
 	"ariga.io/atlas/sql/schema"
 
@@ -66,11 +65,9 @@ type SchemaImporter interface {
 }
 
 type ImportOptions struct {
-	dsn         string
-	tables      []string
-	schemaPath  string
-	importEdges bool
-	writer      io.Writer
+	dsn        string
+	tables     []string
+	schemaPath string
 }
 
 // NewImport - calls the relevant data source importer based on a given dialect.
@@ -151,7 +148,7 @@ func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir 
 func setEdgeField(e ent.Edge, opts options, childNode *schemast.UpsertSchema) {
 	edgeField := opts.edgeField
 	if e.Descriptor().Name == edgeField {
-		edgeField = edgeField + "_id"
+		edgeField += "_id"
 		for _, f := range childNode.Fields {
 			if f.Descriptor().Name == opts.edgeField {
 				f.Descriptor().Name = edgeField

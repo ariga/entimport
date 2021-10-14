@@ -2,7 +2,6 @@ package entimport_test
 
 import (
 	"context"
-	"database/sql"
 	"os"
 	"testing"
 
@@ -18,7 +17,6 @@ const testSchema = "test"
 type MySQLImportTestSuite struct {
 	suite.Suite
 	importer   *entimport.MySQL
-	db         *sql.DB
 	schemaPath string
 }
 
@@ -103,10 +101,10 @@ func (s *MySQLImportTestSuite) TestMultiTableFields() {
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), userSchema)
 	expectedSchema, err = os.ReadFile("../testdata/fields/multitable/pet.go")
+	s.NoError(err)
 	petSchema, ok := schemaFiles["pet.go"]
 	s.True(ok)
 	s.EqualValues(expectedSchema, petSchema)
-
 }
 
 func (s *MySQLImportTestSuite) TestNonDefaultPrimaryKey() {
@@ -144,6 +142,7 @@ func (s *MySQLImportTestSuite) TestRelationM2MTwoTypes() {
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), parentSchema)
 	expectedSchema, err = os.ReadFile("../testdata/relations/m2m2types/user.go")
+	s.NoError(err)
 	childSchema, ok := schemaFiles["user.go"]
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), childSchema)
@@ -202,6 +201,7 @@ func (s *MySQLImportTestSuite) TestRelationO2OTwoTypes() {
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), userSchema)
 	expectedSchema, err = os.ReadFile("../testdata/relations/o2o2types/card.go")
+	s.NoError(err)
 	cardSchema, ok := schemaFiles["card.go"]
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), cardSchema)
@@ -260,6 +260,7 @@ func (s *MySQLImportTestSuite) TestRelationO2MTwoTypes() {
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), parentSchema)
 	expectedSchema, err = os.ReadFile("../testdata/relations/o2m2types/pet.go")
+	s.NoError(err)
 	childSchema, ok := schemaFiles["pet.go"]
 	s.True(ok)
 	s.EqualValues(string(expectedSchema), childSchema)

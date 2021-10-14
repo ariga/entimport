@@ -23,7 +23,7 @@ func TestPostgres(t *testing.T) {
 	const testSchema = "public"
 	r := require.New(t)
 	ctx := context.Background()
-	dsn := fmt.Sprintf("host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable")
+	dsn := "host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable"
 	i := &entimport.ImportOptions{}
 	entimport.WithDSN(dsn)(i)
 	importer := &entimport.Postgres{Options: i}
@@ -39,7 +39,6 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresSingleTableFields(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int16("age"), field.String("name")}
 }`,
@@ -47,7 +46,6 @@ func TestPostgres(t *testing.T) {
 			expectedEdges: map[string]string{
 
 				`user`:
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return nil
 }`,
@@ -59,14 +57,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresTableFieldsWithAttributes(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id").Comment("some id"), field.Int16("age").Optional(), field.String("name").Comment("first name"), field.String("last_name").Optional().Comment("family name")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				`user`:
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return nil
 }`,
@@ -78,14 +74,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresTableFieldsWithUniqueIndexes(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id").Comment("some id"), field.Int16("age").Unique(), field.String("name").Comment("first name"), field.String("last_name").Optional().Comment("family name")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				`user`:
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return nil
 }`,
@@ -97,19 +91,16 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresMultiTableFields(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int16("age").Unique(), field.String("name"), field.String("last_name").Optional().Comment("not so boring")}
 }`,
 				"pet":
-				//language=go
 				`func (Pet) Fields() []ent.Field {
 	return []ent.Field{field.Int("id").Comment("pet id"), field.Int16("age").Optional(), field.String("name")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				`user`:
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return nil
 }`,
@@ -124,14 +115,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresNonDefaultPrimaryKey(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.String("id").StorageKey("name"), field.String("last_name").Optional().Unique().Comment("not so boring")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				`user`:
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return nil
 }`,
@@ -143,24 +132,20 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresM2MTwoTypes(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
 }`,
 				"group":
-				//language=go
 				`func (Group) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.String("name")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"user":
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.From("groups", Group.Type).Ref("users")}
 }`,
 				"group":
-				//language=go
 				`func (Group) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("users", User.Type)}
 }`,
@@ -172,14 +157,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresM2MSameType(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"user":
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
 }`,
@@ -191,14 +174,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresM2MBidirectional(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"user":
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
 }`,
@@ -210,24 +191,20 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresO2OTwoTypes(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
 }`,
 				"card":
-				// language=go
 				`func (Card) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Time("expired"), field.String("number"), field.Int("user_card").Optional().Unique()}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"user":
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("card", Card.Type).Unique()}
 }`,
 				"card":
-				// language=go
 				`func (Card) Edges() []ent.Edge {
 	return []ent.Edge{edge.From("user", User.Type).Ref("card").Unique().Field("user_card")}
 }`,
@@ -239,14 +216,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresO2OSameType(),
 			expectedFields: map[string]string{
 				"node":
-				//language=go
 				`func (Node) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("value"), field.Int("node_next").Optional().Unique()}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"node":
-				//language=go
 				`func (Node) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Unique().Field("node_next")}
 }`,
@@ -258,14 +233,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresO2OBidirectional(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name"), field.Int("user_spouse").Optional().Unique()}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"user":
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Unique().Field("user_spouse")}
 }`,
@@ -277,24 +250,20 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresO2MTwoTypes(),
 			expectedFields: map[string]string{
 				"user":
-				//language=go
 				`func (User) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
 }`,
 				"pet":
-				//language=go
 				`func (Pet) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.String("name"), field.Int("user_pets").Optional()}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"user":
-				//language=go
 				`func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("pets", Pet.Type)}
 }`,
 				"pet":
-				//language=go
 				`func (Pet) Edges() []ent.Edge {
 	return []ent.Edge{edge.From("user", User.Type).Ref("pets").Unique().Field("user_pets")}
 }`,
@@ -306,14 +275,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresO2MSameType(),
 			expectedFields: map[string]string{
 				"node":
-				//language=go
 				`func (Node) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.Int("value"), field.Int("node_children").Optional()}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"node":
-				//language=go
 				`func (Node) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_nodes", Node.Type), edge.From("parent_node", Node.Type).Unique().Field("node_children")}
 }`,
@@ -325,14 +292,12 @@ func TestPostgres(t *testing.T) {
 			mock: MockPostgresO2XOtherSideIgnored(),
 			expectedFields: map[string]string{
 				"pet":
-				//language=go
 				`func (Pet) Fields() []ent.Field {
 	return []ent.Field{field.Int("id"), field.String("name"), field.Int("user_pets").Optional()}
 }`,
 			},
 			expectedEdges: map[string]string{
 				"pet":
-				//language=go
 				`func (Pet) Edges() []ent.Edge {
 	return nil
 }`,

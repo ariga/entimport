@@ -280,5 +280,4 @@ func (p *Postgres) convertSerial(typ *postgres.SerialType, name string) ent.Fiel
 		SchemaType(map[string]string{
 			dialect.Postgres: typ.T, // Override Postgres.
 		})
-
 }

@@ -11,7 +11,7 @@ services:
     healthcheck:
       test: mysqladmin ping -ppass
     ports:
-      - "3308:3306"
+      - "3306:3306"
 
   postgres:
     platform: linux/amd64
@@ -22,4 +22,4 @@ services:
     healthcheck:
       test: pg_isready -U postgres
     ports:
-      - "5434:5432"
+      - "5432:5432"

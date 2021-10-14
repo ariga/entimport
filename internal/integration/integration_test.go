@@ -24,7 +24,7 @@ import (
 func TestMySQL(t *testing.T) {
 	r := require.New(t)
 	ctx := context.Background()
-	dsn := "root:pass@tcp(localhost:3308)/test?parseTime=True&multiStatements=true"
+	dsn := "root:pass@tcp(localhost:3306)/test?parseTime=True&multiStatements=true"
 	db, err := sql.Open(dialect.MySQL, dsn)
 	r.NoError(err)
 	defer db.Close()
@@ -561,7 +561,7 @@ create table user_groups
 func TestPostgres(t *testing.T) {
 	r := require.New(t)
 	ctx := context.Background()
-	dsn := "host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable"
+	dsn := "host=localhost port=5432 user=postgres dbname=test password=pass sslmode=disable"
 	db, err := sql.Open(dialect.Postgres, dsn)
 	r.NoError(err)
 	defer db.Close()

@@ -1,0 +1,35 @@
+name: Continuous Integration
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  lintgo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Go linters
+        uses: golangci/golangci-lint-action@v2.5.2
+        with:
+          version: v1.42.1
+          args: --verbose --enable whitespace,gocritic,goimports
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.3.4
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - uses: actions/cache@v2.1.6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Run tests
+        run: go test -race .
+        working-directory: internal/entimport
+

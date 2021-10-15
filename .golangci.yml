@@ -1,0 +1,4 @@
+linters-settings:
+  goimports:
+    # place these last
+    local-prefixes: golang.org,entgo.io,github.com

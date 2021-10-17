@@ -24,7 +24,7 @@ import (
 func TestMySQL(t *testing.T) {
 	r := require.New(t)
 	ctx := context.Background()
-	dsn := "root:pass@tcp(localhost:3308)/test?parseTime=True&multiStatements=true"
+	dsn := "root:pass@tcp(localhost:3306)/test?parseTime=True&multiStatements=true"
 	db, err := sql.Open(dialect.MySQL, dsn)
 	r.NoError(err)
 	defer db.Close()
@@ -47,7 +47,7 @@ create table users
     id   bigint auto_increment primary key,
     age  bigint       not null,
     name varchar(255) not null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -76,7 +76,7 @@ create table field_type_small_int
     nillable_int16  smallint null,
     optional_uint8  tinyint unsigned null,
     optional_uint16 smallint unsigned null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"field_type_small_int": `func (FieldTypeSmallInt) Fields() []ent.Field {
@@ -110,7 +110,7 @@ create table field_type_int
     optional_uint           bigint unsigned null,
     optional_uint32         int unsigned null,
     optional_uint64         bigint unsigned null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"field_type_int": `func (FieldTypeInt) Fields() []ent.Field {
@@ -135,7 +135,7 @@ create table field_type_float
     optional_float  float null,
     double_field    double not null,
     optional_double float null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"field_type_float": `func (FieldTypeFloat) Fields() []ent.Field {
@@ -158,7 +158,7 @@ create table field_type_enum
     id                 bigint auto_increment primary key,
     enum_field         enum ('on', 'off') null,
     enum_field_default enum ('ADMIN', 'OWNER', 'USER', 'READ', 'WRITE') default 'READ' not null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"field_type_enum": `func (FieldTypeEnum) Fields() []ent.Field {
@@ -185,7 +185,7 @@ create table field_type_other
     bool          tinyint(1) null,
     optional_bool tinyint(1) not null,
     ts               timestamp null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"field_type_other": `func (FieldTypeOther) Fields() []ent.Field {
@@ -207,7 +207,7 @@ create table users
 (
     id   bigint auto_increment primary key,
     name varchar(255) not null
-) collate = utf8mb4_bin;
+);
 
 create table cards
 (
@@ -216,7 +216,7 @@ create table cards
     user_card   bigint null,
     constraint user_card unique (user_card),
     constraint cards_users_card foreign key (user_card) references users (id) on delete set null
-) collate = utf8mb4_bin;
+);
 
 create index card_id on cards (id);
 			`,
@@ -249,7 +249,7 @@ create table nodes
     node_next bigint null,
     constraint node_next unique (node_next),
     constraint nodes_nodes_next foreign key (node_next) references nodes (id) on delete set null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"node": `func (Node) Fields() []ent.Field {
@@ -276,7 +276,7 @@ create table users
     constraint nickname unique (nickname),
     constraint user_spouse unique (user_spouse),
     constraint users_users_spouse foreign key (user_spouse) references users (id) on delete set null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -298,7 +298,7 @@ create table users
 (
     id           bigint auto_increment primary key,
     name         varchar(255)                   not null
-) collate = utf8mb4_bin;
+);
 
 create table pet
 (
@@ -306,7 +306,7 @@ create table pet
     name      varchar(255)     not null,
     user_pets bigint null,
     constraint pet_users_pets foreign key (user_pets) references users (id) on delete set null
-) collate = utf8mb4_bin;
+);
 
 create index pet_name_user_pets on pet (name, user_pets);
 			`,
@@ -339,7 +339,7 @@ create table users
     name         varchar(255)                   not null,
     user_parent  bigint null,
     constraint users_users_parent foreign key (user_parent) references users (id) on delete set null
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -363,7 +363,7 @@ create table users
         primary key,
     age  bigint       not null,
     name varchar(255) not null
-) collate = utf8mb4_bin;
+);
 
 create table user_friends
 (
@@ -372,7 +372,7 @@ create table user_friends
     primary key (user_id, friend_id),
     constraint user_friends_friend_id foreign key (friend_id) references users (id) on delete cascade,
     constraint user_friends_user_id foreign key (user_id) references users (id) on delete cascade
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -394,7 +394,7 @@ create table users
 (
     id   bigint auto_increment primary key,
     name varchar(255) not null
-) collate = utf8mb4_bin;
+);
 
 create table user_following
 (
@@ -403,7 +403,7 @@ create table user_following
     primary key (user_id, follower_id),
     constraint user_following_follower_id foreign key (follower_id) references users (id) on delete cascade,
     constraint user_following_user_id foreign key (user_id) references users (id) on delete cascade
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -427,13 +427,13 @@ create table some_groups
     id        bigint auto_increment primary key,
     active    tinyint(1) default 1 not null,
     name      varchar(255) not null
-) collate = utf8mb4_bin;
+);
 
 create table users
 (
     id           bigint auto_increment primary key,
     name         varchar(255)                   not null
-) collate = utf8mb4_bin;
+);
 
 create table user_groups
 (
@@ -442,7 +442,7 @@ create table user_groups
     primary key (user_id, group_id),
     constraint user_groups_some_groups_id foreign key (group_id) references some_groups (id) on delete cascade,
     constraint user_groups_user_id foreign key (user_id) references users (id) on delete cascade
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -471,7 +471,7 @@ create table group_infos
     id        bigint auto_increment primary key,
     description    varchar(255)         not null,
     max_users bigint default 10000 not null
-) collate = utf8mb4_bin;
+);
 
 create table some_groups
 (
@@ -479,7 +479,7 @@ create table some_groups
     name       varchar(255) not null,
     group_info bigint null,
     constraint groups_group_infos_info foreign key (group_info) references group_infos (id) on delete set null
-) collate = utf8mb4_bin;
+);
 
 create table users
 (
@@ -488,7 +488,7 @@ create table users
     name          varchar(255)                   not null,
     group_blocked bigint null,
     constraint users_some_groups_blocked foreign key (group_blocked) references some_groups (id) on delete set null
-) collate = utf8mb4_bin;
+);
 
 create table user_groups
 (
@@ -497,7 +497,7 @@ create table user_groups
     primary key (user_id, group_id),
     constraint user_groups_some_groups_id foreign key (group_id) references some_groups (id) on delete cascade,
     constraint user_groups_user_id foreign key (user_id) references users (id) on delete cascade
-) collate = utf8mb4_bin;
+);
 			`,
 			expectedFields: map[string]string{
 				"user": `func (User) Fields() []ent.Field {
@@ -561,7 +561,7 @@ create table user_groups
 func TestPostgres(t *testing.T) {
 	r := require.New(t)
 	ctx := context.Background()
-	dsn := "host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable"
+	dsn := "host=localhost port=5432 user=postgres dbname=test password=pass sslmode=disable"
 	db, err := sql.Open(dialect.Postgres, dsn)
 	r.NoError(err)
 	defer db.Close()

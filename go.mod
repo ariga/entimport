@@ -3,7 +3,7 @@ module ariga.io/entimport
 go 1.17
 
 require (
-	ariga.io/atlas v0.0.0-20211011120628-520c50fe1e10
+	ariga.io/atlas v0.0.0-20211016200743-b01a2b4d6539
 	entgo.io/contrib v0.1.1-0.20211009150803-2f98d3a15e7d
 	entgo.io/ent v0.9.2-0.20211011110952-058e40abcf61
 	github.com/go-openapi/inflect v0.19.0

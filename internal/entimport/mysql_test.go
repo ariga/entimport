@@ -1,314 +1,314 @@
 package entimport_test
 
 import (
+	"bytes"
 	"context"
-	"os"
+	"go/parser"
+	"go/printer"
+	"go/token"
 	"testing"
 
 	"ariga.io/atlas/sql/schema"
 	"ariga.io/entimport/internal/entimport"
 
+	"github.com/go-openapi/inflect"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 )
 
-const testSchema = "test"
-
-type MySQLImportTestSuite struct {
-	suite.Suite
-	importer   *entimport.MySQL
-	schemaPath string
-}
-
-func TestMySQLSuite(t *testing.T) {
-	suite.Run(t, new(MySQLImportTestSuite))
-}
-
-func (s *MySQLImportTestSuite) SetupTest() {
-	tempDir := createTempDir(s.T())
+func TestMySQL(t *testing.T) {
+	const testSchema = "test"
+	r := require.New(t)
+	ctx := context.Background()
 	i := &entimport.ImportOptions{}
 	entimport.WithDSN("root:pass@tcp(localhost:3308)/test?parseTime=True")(i)
-	entimport.WithSchemaPath(tempDir)(i)
-	s.importer = &entimport.MySQL{Options: i}
-	s.schemaPath = tempDir
+	importer := &entimport.MySQL{Options: i}
+	tests := []struct {
+		name           string
+		entities       []string
+		expectedFields map[string]string
+		mock           *schema.Schema
+		expectedEdges  map[string]string
+	}{
+		{
+			name: "single_table_fields",
+			mock: MockMySQLSingleTableFields(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int8("age"), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "fields_with_attributes",
+			mock: MockMySQLTableFieldsWithAttributes(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id").Comment("some id"), field.Int8("age").Optional(), field.String("name").Comment("first name"), field.String("last_name").Optional().Comment("family name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "fields_with_unique_indexes",
+			mock: MockMySQLTableFieldsWithUniqueIndexes(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int8("age").Unique(), field.String("last_name").Optional().Comment("not so boring"), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "multi_table_fields",
+			mock: MockMySQLMultiTableFields(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int8("age").Unique(), field.String("last_name").Optional().Comment("not so boring"), field.String("name")}
+}`,
+				"pet": `func (Pet) Fields() []ent.Field {
+	return []ent.Field{field.Int("id").Comment("pet id"), field.Int8("age").Optional(), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+				`pet`: `func (Pet) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"user", "pet"},
+		},
+		{
+			name: "non_default_primary_key",
+			mock: MockMySQLNonDefaultPrimaryKey(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.String("id").StorageKey("name"), field.String("last_name").Unique()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "relation_m2m_two_types",
+			mock: MockMySQLM2MTwoTypes(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
+}`,
+				"group": `func (Group) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"user": `func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.From("groups", Group.Type).Ref("users")}
+}`,
+				"group": `func (Group) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("users", User.Type)}
+}`,
+			},
+			entities: []string{"user", "group"},
+		},
+		{
+			name: "relation_m2m_same_type",
+			mock: MockMySQLM2MSameType(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"user": `func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "relation_m2m_bidirectional",
+			mock: MockMySQLM2MBidirectional(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"user": `func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "relation_o2o_two_types",
+			mock: MockMySQLO2OTwoTypes(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
+}`,
+				"card": `func (Card) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.String("number"), field.Int("user_card").Optional()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"user": `func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("card", Card.Type).Unique()}
+}`,
+				"card": `func (Card) Edges() []ent.Edge {
+	return []ent.Edge{edge.From("user", User.Type).Ref("card").Unique().Field("user_card")}
+}`,
+			},
+			entities: []string{"user", "card"},
+		},
+		{
+			name: "relation_o2o_same_type",
+			mock: MockMySQLO2OSameType(),
+			expectedFields: map[string]string{
+				"node": `func (Node) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("value"), field.Int("node_next").Optional()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"node": `func (Node) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Unique().Field("node_next")}
+}`,
+			},
+			entities: []string{"node"},
+		},
+		{
+			name: "relation_o2o_bidirectional",
+			mock: MockMySQLO2OBidirectional(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name"), field.Int("user_spouse").Optional()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"user": `func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Unique().Field("user_spouse")}
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
+			name: "relation_o2m_two_types",
+			mock: MockMySQLO2MTwoTypes(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("age"), field.String("name")}
+}`,
+				"pet": `func (Pet) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.String("name"), field.Int("user_pets").Optional()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"user": `func (User) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("pets", Pet.Type)}
+}`,
+				"pet": `func (Pet) Edges() []ent.Edge {
+	return []ent.Edge{edge.From("user", User.Type).Ref("pets").Unique().Field("user_pets")}
+}`,
+			},
+			entities: []string{"user", "pet"},
+		},
+		{
+			name: "relation_o2m_same_type",
+			mock: MockMySQLO2MSameType(),
+			expectedFields: map[string]string{
+				"node": `func (Node) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int("value"), field.Int("node_children").Optional()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"node": `func (Node) Edges() []ent.Edge {
+	return []ent.Edge{edge.To("child_nodes", Node.Type), edge.From("parent_node", Node.Type).Unique().Field("node_children")}
+}`,
+			},
+			entities: []string{"node"},
+		},
+		{
+			name: "relation_o2x_other_side_ignored",
+			mock: MockMySQLO2XOtherSideIgnored(),
+			expectedFields: map[string]string{
+				"pet": `func (Pet) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.String("name"), field.Int("user_pets").Optional()}
+}`,
+			},
+			expectedEdges: map[string]string{
+				"pet": `func (Pet) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"pet"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			schemas := createTempDir(t)
+			mock := &Inspector{}
+			mock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(tt.mock, nil)
+			importer.Inspector = mock
+			mutations, err := importer.SchemaMutations(ctx)
+			r.NoError(err)
+			err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(schemas))
+			r.NoError(err)
+			actualFiles := readDir(t, schemas)
+			r.EqualValues(len(tt.entities), len(actualFiles))
+			for _, e := range tt.entities {
+				f, err := parser.ParseFile(token.NewFileSet(), "", actualFiles[e+".go"], 0)
+				r.NoError(err)
+				typeName := inflect.Camelize(e)
+				fieldMethod := lookupMethod(f, typeName, "Fields")
+				r.NotNil(fieldMethod)
+				var actualFields bytes.Buffer
+				err = printer.Fprint(&actualFields, token.NewFileSet(), fieldMethod)
+				r.NoError(err)
+				r.EqualValues(tt.expectedFields[e], actualFields.String())
+				edgeMethod := lookupMethod(f, typeName, "Edges")
+				r.NotNil(edgeMethod)
+				var actualEdges bytes.Buffer
+				err = printer.Fprint(&actualEdges, token.NewFileSet(), edgeMethod)
+				r.NoError(err)
+				r.EqualValues(tt.expectedEdges[e], actualEdges.String())
+			}
+		})
+	}
 }
 
-func (s *MySQLImportTestSuite) TestSingleTableFields() {
+func TestMySQLJoinTableOnly(t *testing.T) {
 	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLSingleTableFields(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	expectedSchema, err := os.ReadFile("../testdata/fields/singletable/user.go")
-	s.NoError(err)
-	userSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(expectedSchema, userSchema)
-}
-
-func (s *MySQLImportTestSuite) TestTableFieldsWithAttributes() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLTableFieldsWithAttributes(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	expectedSchema, err := os.ReadFile("../testdata/fields/tablefields/user.go")
-	s.NoError(err)
-	userSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(expectedSchema, userSchema)
-}
-
-func (s *MySQLImportTestSuite) TestTableFieldsWithUniqueIndexes() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLTableFieldsWithUniqueIndexes(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	expectedSchema, err := os.ReadFile("../testdata/fields/uniqueindex/user.go")
-	s.NoError(err)
-	userSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), userSchema)
-}
-
-func (s *MySQLImportTestSuite) TestMultiTableFields() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLMultiTableFields(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 2)
-	expectedSchema, err := os.ReadFile("../testdata/fields/multitable/user.go")
-	s.NoError(err)
-	userSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), userSchema)
-	expectedSchema, err = os.ReadFile("../testdata/fields/multitable/pet.go")
-	s.NoError(err)
-	petSchema, ok := schemaFiles["pet.go"]
-	s.True(ok)
-	s.EqualValues(expectedSchema, petSchema)
-}
-
-func (s *MySQLImportTestSuite) TestNonDefaultPrimaryKey() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLNonDefaultPrimaryKey(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	userSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/fields/primarykey/user.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), userSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationM2MTwoTypes() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLM2MTwoTypes(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 2)
-	expectedSchema, err := os.ReadFile("../testdata/relations/m2m2types/group.go")
-	s.NoError(err)
-	parentSchema, ok := schemaFiles["group.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), parentSchema)
-	expectedSchema, err = os.ReadFile("../testdata/relations/m2m2types/user.go")
-	s.NoError(err)
-	childSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), childSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationM2MSameType() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLM2MSameType(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	actualSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/relations/m2mrecur/user.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), actualSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationM2MBidirectional() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLM2MBidirectional(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	actualSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/relations/m2mbidi/user.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), actualSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationO2OTwoTypes() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLO2OTwoTypes(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 2)
-	expectedSchema, err := os.ReadFile("../testdata/relations/o2o2types/user.go")
-	s.NoError(err)
-	userSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), userSchema)
-	expectedSchema, err = os.ReadFile("../testdata/relations/o2o2types/card.go")
-	s.NoError(err)
-	cardSchema, ok := schemaFiles["card.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), cardSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationO2OSameType() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLO2OSameType(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	actualSchema, ok := schemaFiles["node.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/relations/o2orecur/node.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), actualSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationO2OBidirectional() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLO2OBidirectional(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	actualSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/relations/o2obidi/user.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), actualSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationO2MTwoTypes() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLO2MTwoTypes(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 2)
-	expectedSchema, err := os.ReadFile("../testdata/relations/o2m2types/user.go")
-	s.NoError(err)
-	parentSchema, ok := schemaFiles["user.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), parentSchema)
-	expectedSchema, err = os.ReadFile("../testdata/relations/o2m2types/pet.go")
-	s.NoError(err)
-	childSchema, ok := schemaFiles["pet.go"]
-	s.True(ok)
-	s.EqualValues(string(expectedSchema), childSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationO2MSameType() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLO2MSameType(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	actualSchema, ok := schemaFiles["node.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/relations/o2mrecur/node.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), actualSchema)
-}
-
-// Case the `-tables` flag didn't provide all sides of the relation.
-func (s *MySQLImportTestSuite) TestRelationO2XOtherSideIgnored() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLO2XOtherSideIgnored(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.NoError(err)
-	err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(s.schemaPath))
-	s.NoError(err)
-	schemaFiles := readDir(s.T(), s.schemaPath)
-	s.Len(schemaFiles, 1)
-	actualSchema, ok := schemaFiles["pet.go"]
-	s.True(ok)
-	expectedSchema, err := os.ReadFile("../testdata/relations/o2xignore/pet.go")
-	s.NoError(err)
-	s.EqualValues(string(expectedSchema), actualSchema)
-}
-
-func (s *MySQLImportTestSuite) TestRelationM2MJoinTableOnly() {
-	ctx := context.Background()
-	iMock := &Inspector{}
-	iMock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(MockMySQLM2MJoinTableOnly(), nil)
-	s.importer.Inspector = iMock
-	mutations, err := s.importer.SchemaMutations(ctx)
-	s.Empty(mutations)
-	s.EqualError(err, "entimport: join tables must be inspected with ref tables - append `tables` flag")
+	i := &entimport.ImportOptions{}
+	entimport.WithDSN("root:pass@tcp(localhost:3308)/test?parseTime=True")(i)
+	importer := &entimport.MySQL{
+		Options: i,
+	}
+	mock := &Inspector{}
+	mock.On("InspectSchema", ctx, "test", &schema.InspectOptions{}).Return(MockMySQLM2MJoinTableOnly(), nil)
+	importer.Inspector = mock
+	mutations, err := importer.SchemaMutations(ctx)
+	require.Empty(t, mutations)
+	require.EqualError(t, err, "entimport: join tables must be inspected with ref tables - append `tables` flag")
 }

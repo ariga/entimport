@@ -62,6 +62,10 @@ func WithTables(tables []string) ImportOption {
 type SchemaImporter interface {
 	// SchemaMutations imports a given schema from a data source and returns a list of schemast mutators.
 	SchemaMutations(context.Context) ([]schemast.Mutator, error)
+	// field receives an Atlas column and converts in to an ent field.
+	field(column *schema.Column) (f ent.Field, err error)
+	//mutations for a given table.
+	//mutations(tableName string) (*schemast.UpsertSchema, bool)
 }
 
 type ImportOptions struct {
@@ -202,4 +206,158 @@ func isJoinTable(table *schema.Table) bool {
 		}
 	}
 	return true
+}
+
+func typeName(tableName string) string {
+	return inflect.Camelize(inflect.Singularize(tableName))
+}
+
+func tableName(typeName string) string {
+	return inflect.Underscore(inflect.Pluralize(typeName))
+}
+
+func resolvePrimaryKey(importer SchemaImporter, table *schema.Table) (f ent.Field, err error) {
+	if table.PrimaryKey == nil || len(table.PrimaryKey.Parts) != 1 {
+		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present")
+	}
+	if f, err = importer.field(table.PrimaryKey.Parts[0].C); err != nil {
+		return nil, err
+	}
+	if f.Descriptor().Name != "id" {
+		f.Descriptor().StorageKey = f.Descriptor().Name
+		f.Descriptor().Name = "id"
+	}
+	return f, nil
+}
+
+func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, error) {
+	upsert := &schemast.UpsertSchema{
+		Name: typeName(table.Name),
+	}
+	fields := make(map[string]ent.Field, len(upsert.Fields))
+	for _, f := range upsert.Fields {
+		fields[f.Descriptor().Name] = f
+	}
+	pk, err := resolvePrimaryKey(i, table)
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := fields[pk.Descriptor().Name]; !ok {
+		fields[pk.Descriptor().Name] = pk
+		upsert.Fields = append(upsert.Fields, pk)
+	}
+	for _, column := range table.Columns {
+		if column.Name == table.PrimaryKey.Parts[0].C.Name {
+			continue
+		}
+		fld, err := i.field(column)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := fields[column.Name]; !ok {
+			fields[column.Name] = fld
+			upsert.Fields = append(upsert.Fields, fld)
+		}
+	}
+	for _, index := range table.Indexes {
+		if index.Unique && len(index.Parts) == 1 {
+			fields[index.Parts[0].C.Name].Descriptor().Unique = true
+		}
+	}
+	for _, fk := range table.ForeignKeys {
+		for _, column := range fk.Columns {
+			// FK / Reference column
+			fields[column.Name].Descriptor().Optional = true
+		}
+	}
+	return upsert, err
+}
+
+func applyColumnAttributes(f ent.Field, col *schema.Column) {
+	desc := f.Descriptor()
+	desc.Optional = col.Type.Null
+	for _, attr := range col.Attrs {
+		if a, ok := attr.(*schema.Comment); ok {
+			desc.Comment = a.Text
+		}
+	}
+}
+
+func schemaMutations(importer SchemaImporter, tables []*schema.Table) ([]schemast.Mutator, error) {
+	mutations := make(map[string]schemast.Mutator, len(tables))
+	joinTables := make(map[string]*schema.Table)
+	for _, table := range tables {
+		if isJoinTable(table) {
+			joinTables[table.Name] = table
+			continue
+		}
+		node, err := upsertNode(importer, table)
+		if err != nil {
+			return nil, err
+		}
+		mutations[table.Name] = node
+	}
+	for _, table := range tables {
+		if t, ok := joinTables[table.Name]; ok {
+			err := upsertManyToMany(mutations, t)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		upsertOneToX(mutations, table)
+	}
+	ml := make([]schemast.Mutator, 0, len(mutations))
+	for _, mutator := range mutations {
+		ml = append(ml, mutator)
+	}
+	return ml, nil
+}
+
+// O2O Two Types - Child Table has a unique reference (FK) to Parent table
+// O2O Same Type - Child Table has a unique reference (FK) to Parent table (itself)
+// O2M (The "Many" side, keeps a reference to the "One" side).
+// O2M Two Types - Parent has a non-unique reference to Child, and Child has a unique back-reference to Parent
+// O2M Same Type - Parent has a non-unique reference to Child, and Child doesn't have a back-reference to Parent.
+func upsertOneToX(mutations map[string]schemast.Mutator, table *schema.Table) {
+	if table.ForeignKeys == nil {
+		return
+	}
+	idxs := make(map[string]*schema.Index, len(table.Indexes))
+	for _, idx := range table.Indexes {
+		if len(idx.Parts) != 1 {
+			continue
+		}
+		idxs[idx.Parts[0].C.Name] = idx
+	}
+	for _, fk := range table.ForeignKeys {
+		if len(fk.Columns) != 1 {
+			continue
+		}
+		parent := fk.RefTable
+		child := table
+		colName := fk.Columns[0].Name
+		opts := options{
+			uniqueEdgeFromParent: true,
+			refName:              child.Name,
+			edgeField:            colName,
+		}
+		if child.Name == parent.Name {
+			opts.recursive = true
+		}
+		idx, ok := idxs[colName]
+		if ok && idx.Unique {
+			opts.uniqueEdgeToChild = true
+		}
+		// If at least one table in the relation does not exist, there is no point to create it.
+		parentNode, ok := mutations[parent.Name].(*schemast.UpsertSchema)
+		if !ok {
+			return
+		}
+		childNode, ok := mutations[child.Name].(*schemast.UpsertSchema)
+		if !ok {
+			return
+		}
+		upsertRelation(parentNode, childNode, opts)
+	}
 }

@@ -188,50 +188,6 @@ func MockMySQLTableFieldsWithAttributes() *schema.Schema {
 }
 
 func MockMySQLTableFieldsWithUniqueIndexes() *schema.Schema {
-	indexes := []*schema.Index{
-		{
-			Name:   "users_age_uindex",
-			Unique: true,
-			Attrs: []schema.Attr{
-				&mysql.IndexType{
-					T: "BTREE",
-				},
-			},
-			Parts: []*schema.IndexPart{
-				{
-					SeqNo: 1,
-					Attrs: []schema.Attr{
-						&schema.Collation{V: "A"},
-					},
-				},
-			},
-		},
-	}
-	primaryKey := &schema.Index{
-		Name:   "PRI",
-		Unique: false,
-		Parts: []*schema.IndexPart{
-			{
-				SeqNo: 0,
-				C: &schema.Column{
-					Name: "id",
-					Type: &schema.ColumnType{
-						Type: &schema.IntegerType{
-							T:        "bigint",
-							Unsigned: false,
-						},
-						Raw:  "bigint",
-						Null: false,
-					},
-					Attrs: []schema.Attr{
-						&mysql.AutoIncrement{
-							V: 0,
-						},
-					},
-				},
-			},
-		},
-	}
 	table := &schema.Table{
 		Name: "users",
 		Columns: []*schema.Column{
@@ -309,8 +265,36 @@ func MockMySQLTableFieldsWithUniqueIndexes() *schema.Schema {
 			},
 		},
 	}
-	table.Indexes = indexes
-	table.PrimaryKey = primaryKey
+	table.Indexes = []*schema.Index{
+		{
+			Name:   "users_age_uindex",
+			Unique: true,
+			Attrs: []schema.Attr{
+				&mysql.IndexType{
+					T: "BTREE",
+				},
+			},
+			Parts: []*schema.IndexPart{
+				{
+					SeqNo: 1,
+					Attrs: []schema.Attr{
+						&schema.Collation{V: "A"},
+					},
+					C: table.Columns[0],
+				},
+			},
+		},
+	}
+	table.PrimaryKey = &schema.Index{
+		Name:   "PRI",
+		Unique: false,
+		Parts: []*schema.IndexPart{
+			{
+				SeqNo: 0,
+				C:     table.Columns[1],
+			},
+		},
+	}
 	return &schema.Schema{
 		Name:   "test",
 		Tables: []*schema.Table{table},
@@ -403,6 +387,26 @@ func MockMySQLMultiTableFields() *schema.Schema {
 			},
 		},
 	}
+	tableA.Indexes = []*schema.Index{
+		{
+			Name:   "users_age_uindex",
+			Unique: true,
+			Attrs: []schema.Attr{
+				&mysql.IndexType{
+					T: "BTREE",
+				},
+			},
+			Parts: []*schema.IndexPart{
+				{
+					SeqNo: 1,
+					Attrs: []schema.Attr{
+						&schema.Collation{V: "A"},
+					},
+					C: tableA.Columns[0],
+				},
+			},
+		},
+	}
 	tableB := &schema.Table{
 		Name: "pets",
 		Columns: []*schema.Column{
@@ -469,19 +473,50 @@ func MockMySQLMultiTableFields() *schema.Schema {
 }
 
 func MockMySQLNonDefaultPrimaryKey() *schema.Schema {
-	primaryKey := &schema.Index{
+	table := &schema.Table{
+		Name: "users",
+		Columns: []*schema.Column{
+			{
+				Name: "last_name",
+				Type: &schema.ColumnType{
+					Type: &schema.StringType{T: "varchar", Size: 255},
+					Raw:  "varchar(255)",
+					Null: false,
+				},
+			},
+			{
+				Name: "name",
+				Type: &schema.ColumnType{
+					Type: &schema.StringType{T: "varchar", Size: 255},
+					Raw:  "varchar(255)",
+					Null: false,
+				},
+			},
+		},
+	}
+	table.PrimaryKey = &schema.Index{
 		Name:   "PRI",
 		Unique: false,
 		Parts: []*schema.IndexPart{
 			{
 				SeqNo: 0,
-				C: &schema.Column{
-					Name: "name",
-					Type: &schema.ColumnType{
-						Type: &schema.StringType{T: "varchar", Size: 255},
-						Raw:  "varchar(255)",
-						Null: false,
-					},
+				C:     table.Columns[1],
+			},
+		},
+	}
+	table.Indexes = []*schema.Index{
+		{
+			Name:   "users_last_name_uindex",
+			Unique: true,
+			Attrs: []schema.Attr{
+				&mysql.IndexType{
+					T: "BTREE",
+				},
+			},
+			Parts: []*schema.IndexPart{
+				{
+					SeqNo: 0,
+					C:     table.Columns[0],
 				},
 			},
 		},
@@ -489,54 +524,10 @@ func MockMySQLNonDefaultPrimaryKey() *schema.Schema {
 	return &schema.Schema{
 		Name: "test",
 		Tables: []*schema.Table{
-			{
-				Name: "users",
-				Columns: []*schema.Column{
-					{
-						Name: "last_name",
-						Type: &schema.ColumnType{
-							Type: &schema.StringType{T: "varchar", Size: 255},
-							Raw:  "varchar(255)",
-							Null: false,
-						},
-						Indexes: []*schema.Index{
-							{
-								Name:   "users_last_name_uindex",
-								Unique: true,
-								Attrs: []schema.Attr{
-									&mysql.IndexType{
-										T: "BTREE",
-									},
-								},
-								Parts: []*schema.IndexPart{
-									{
-										SeqNo: 0,
-										C: &schema.Column{
-											Name: "last_name",
-											Type: &schema.ColumnType{
-												Type: &schema.StringType{T: "varchar", Size: 255},
-												Raw:  "varchar(255)",
-												Null: false,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-					{
-						Name: "name",
-						Type: &schema.ColumnType{
-							Type: &schema.StringType{T: "varchar", Size: 255},
-							Raw:  "varchar(255)",
-							Null: false,
-						},
-					},
-				},
-				PrimaryKey: primaryKey,
-			},
+			table,
 		},
 	}
+
 }
 
 func MockMySQLM2MTwoTypes() *schema.Schema {

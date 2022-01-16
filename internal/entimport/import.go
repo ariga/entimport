@@ -64,8 +64,6 @@ type SchemaImporter interface {
 	SchemaMutations(context.Context) ([]schemast.Mutator, error)
 	// field receives an Atlas column and converts in to an ent field.
 	field(column *schema.Column) (f ent.Field, err error)
-	//mutations for a given table.
-	//mutations(tableName string) (*schemast.UpsertSchema, bool)
 }
 
 type ImportOptions struct {

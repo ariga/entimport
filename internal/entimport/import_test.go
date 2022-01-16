@@ -527,7 +527,6 @@ func MockMySQLNonDefaultPrimaryKey() *schema.Schema {
 			table,
 		},
 	}
-
 }
 
 func MockMySQLM2MTwoTypes() *schema.Schema {

@@ -245,7 +245,9 @@ func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, 
 		upsert.Fields = append(upsert.Fields, pk)
 	}
 	for _, column := range table.Columns {
-		if pk != nil && pk.Descriptor().Name == column.Name {
+		if table.PrimaryKey != nil &&
+			len(table.PrimaryKey.Parts) != 0 &&
+			table.PrimaryKey.Parts[0].C.Name == column.Name {
 			continue
 		}
 		fld, err := i.field(column)
@@ -286,7 +288,7 @@ func applyColumnAttributes(f ent.Field, col *schema.Column) {
 }
 
 func schemaMutations(importer SchemaImporter, tables []*schema.Table) ([]schemast.Mutator, error) {
-	mutations := make(map[string]schemast.Mutator, len(tables))
+	mutations := make(map[string]schemast.Mutator)
 	joinTables := make(map[string]*schema.Table)
 	for _, table := range tables {
 		if isJoinTable(table) {
@@ -325,7 +327,7 @@ func upsertOneToX(mutations map[string]schemast.Mutator, table *schema.Table) {
 	if table.ForeignKeys == nil {
 		return
 	}
-	idxs := make(map[string]*schema.Index, len(table.Indexes))
+	idxs := make(map[string]*schema.Index)
 	for _, idx := range table.Indexes {
 		if len(idx.Parts) != 1 {
 			continue

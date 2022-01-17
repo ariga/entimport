@@ -245,7 +245,7 @@ func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, 
 		upsert.Fields = append(upsert.Fields, pk)
 	}
 	for _, column := range table.Columns {
-		if column.Name == table.PrimaryKey.Parts[0].C.Name {
+		if pk != nil && pk.Descriptor().Name == column.Name {
 			continue
 		}
 		fld, err := i.field(column)
@@ -265,7 +265,11 @@ func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, 
 	for _, fk := range table.ForeignKeys {
 		for _, column := range fk.Columns {
 			// FK / Reference column
-			fields[column.Name].Descriptor().Optional = true
+			fld, ok := fields[column.Name]
+			if !ok {
+				return nil, fmt.Errorf("foreign key for column: %q doesn't exist in fields set", column.Name)
+			}
+			fld.Descriptor().Optional = true
 		}
 	}
 	return upsert, err

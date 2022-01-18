@@ -66,13 +66,14 @@ type SchemaImporter interface {
 	field(column *schema.Column) (f ent.Field, err error)
 }
 
+// ImportOptions are the options passed to the importer functions.
 type ImportOptions struct {
 	dsn        string
 	tables     []string
 	schemaPath string
 }
 
-// NewImport - calls the relevant data source importer based on a given dialect.
+// NewImport calls the relevant data source importer based on a given dialect.
 func NewImport(dialectName string, opts ...ImportOption) (SchemaImporter, error) {
 	var (
 		si  SchemaImporter
@@ -111,6 +112,7 @@ func WriteSchema(mutations []schemast.Mutator, opts ...ImportOption) error {
 	return ctx.Print(i.schemaPath, schemast.Header(header))
 }
 
+// entEdge creates an edge based on the given params and direction.
 func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir edgeDir, opts options) (e ent.Edge) {
 	switch dir {
 	case to:
@@ -147,8 +149,10 @@ func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir 
 	return e
 }
 
+// setEdgeField is a function to properly name edge fields.
 func setEdgeField(e ent.Edge, opts options, childNode *schemast.UpsertSchema) {
 	edgeField := opts.edgeField
+	// rename the field in case the edge and the field have the same name
 	if e.Descriptor().Name == edgeField {
 		edgeField += "_id"
 		for _, f := range childNode.Fields {
@@ -160,6 +164,7 @@ func setEdgeField(e ent.Edge, opts options, childNode *schemast.UpsertSchema) {
 	e.Descriptor().Field = edgeField
 }
 
+// upsertRelation takes 2 nodes and created the edges between them.
 func upsertRelation(nodeA *schemast.UpsertSchema, nodeB *schemast.UpsertSchema, opts options) {
 	tableA := tableName(nodeA.Name)
 	tableB := tableName(nodeB.Name)
@@ -170,6 +175,7 @@ func upsertRelation(nodeA *schemast.UpsertSchema, nodeB *schemast.UpsertSchema, 
 	nodeB.Edges = append(nodeB.Edges, fromA)
 }
 
+// upsertManyToMany handles the creation of M2M relations.
 func upsertManyToMany(mutations map[string]schemast.Mutator, table *schema.Table) error {
 	tableA := table.ForeignKeys[0].RefTable
 	tableB := table.ForeignKeys[1].RefTable
@@ -214,6 +220,7 @@ func tableName(typeName string) string {
 	return inflect.Underscore(inflect.Pluralize(typeName))
 }
 
+// resolvePrimaryKey returns the primary key as an ent field for a given table.
 func resolvePrimaryKey(importer SchemaImporter, table *schema.Table) (f ent.Field, err error) {
 	if table.PrimaryKey == nil || len(table.PrimaryKey.Parts) != 1 {
 		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present")
@@ -228,6 +235,7 @@ func resolvePrimaryKey(importer SchemaImporter, table *schema.Table) (f ent.Fiel
 	return f, nil
 }
 
+// upsertNode handles the creation of a node from a given table.
 func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, error) {
 	upsert := &schemast.UpsertSchema{
 		Name: typeName(table.Name),
@@ -277,6 +285,7 @@ func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, 
 	return upsert, err
 }
 
+// applyColumnAttributes adds column attributes to a given ent field.
 func applyColumnAttributes(f ent.Field, col *schema.Column) {
 	desc := f.Descriptor()
 	desc.Optional = col.Type.Null
@@ -287,6 +296,7 @@ func applyColumnAttributes(f ent.Field, col *schema.Column) {
 	}
 }
 
+// schemaMutations is in charge of creating all the schema mutations needed for an ent schema.
 func schemaMutations(importer SchemaImporter, tables []*schema.Table) ([]schemast.Mutator, error) {
 	mutations := make(map[string]schemast.Mutator)
 	joinTables := make(map[string]*schema.Table)

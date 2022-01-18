@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"ariga.io/entimport/internal/entimport"
+	"ariga.io/entimport/internal/mux"
 
 	"entgo.io/ent/dialect"
 	"github.com/go-openapi/inflect"
@@ -22,14 +23,20 @@ import (
 )
 
 func TestMySQL(t *testing.T) {
-	r := require.New(t)
-	ctx := context.Background()
-	dsn := "root:pass@tcp(localhost:3306)/test?parseTime=True&multiStatements=true"
+	var (
+		r   = require.New(t)
+		ctx = context.Background()
+		dsn = "root:pass@tcp(localhost:3306)/test?parseTime=True&multiStatements=true"
+	)
 	db, err := sql.Open(dialect.MySQL, dsn)
 	r.NoError(err)
 	defer db.Close()
 	r.NoError(db.Ping())
-	si, err := entimport.NewMySQL(entimport.WithDSN(dsn))
+	drv, err := mux.DefaultMux.OpenImport("mysql://" + dsn)
+	r.NoError(err)
+	si, err := entimport.NewImport(
+		entimport.WithDriver(drv),
+	)
 	r.NoError(err)
 	tests := []struct {
 		name           string
@@ -40,7 +47,7 @@ func TestMySQL(t *testing.T) {
 	}{
 		{
 			name: "one table",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
@@ -63,18 +70,18 @@ create table users
 		},
 		{
 			name: "int8 and int16 field types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table field_type_small_int
 (
     id              bigint auto_increment primary key,
-    int_8           tinyint  not null,
-    int16           smallint not null,
-    optional_int8   tinyint null,
-    optional_int16  smallint null,
-    nillable_int8   tinyint null,
-    nillable_int16  smallint null,
-    optional_uint8  tinyint unsigned null,
+    int_8           tinyint           not null,
+    int16           smallint          not null,
+    optional_int8   tinyint           null,
+    optional_int16  smallint          null,
+    nillable_int8   tinyint           null,
+    nillable_int16  smallint          null,
+    optional_uint8  tinyint unsigned  null,
     optional_uint16 smallint unsigned null
 );
 			`,
@@ -92,23 +99,23 @@ create table field_type_small_int
 		},
 		{
 			name: "int32 and int64 field types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table field_type_int
 (
     id                      bigint auto_increment primary key,
-    int_field               bigint not null,
-    int32                   int    not null,
-    int64                   bigint not null,
-    optional_int            bigint null,
-    optional_int32          int null,
-    optional_int64          bigint null,
-    nillable_int            bigint null,
-    nillable_int32          int null,
-    nillable_int64          bigint null,
-    validate_optional_int32 int null,
+    int_field               bigint          not null,
+    int32                   int             not null,
+    int64                   bigint          not null,
+    optional_int            bigint          null,
+    optional_int32          int             null,
+    optional_int64          bigint          null,
+    nillable_int            bigint          null,
+    nillable_int32          int             null,
+    nillable_int64          bigint          null,
+    validate_optional_int32 int             null,
     optional_uint           bigint unsigned null,
-    optional_uint32         int unsigned null,
+    optional_uint32         int unsigned    null,
     optional_uint64         bigint unsigned null
 );
 			`,
@@ -126,15 +133,15 @@ create table field_type_int
 		},
 		{
 			name: "float field types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table field_type_float
 (
     id              bigint auto_increment primary key,
     float_field     float  not null,
-    optional_float  float null,
+    optional_float  float  null,
     double_field    double not null,
-    optional_double float null
+    optional_double float  null
 );
 			`,
 			expectedFields: map[string]string{
@@ -151,12 +158,12 @@ create table field_type_float
 		},
 		{
 			name: "enum field types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table field_type_enum
 (
     id                 bigint auto_increment primary key,
-    enum_field         enum ('on', 'off') null,
+    enum_field         enum ('on', 'off')                                              null,
     enum_field_default enum ('ADMIN', 'OWNER', 'USER', 'READ', 'WRITE') default 'READ' not null
 );
 			`,
@@ -174,17 +181,17 @@ create table field_type_enum
 		},
 		{
 			name: "other field types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table field_type_other
 (
-    id               bigint auto_increment primary key,
-    datetime         datetime null,
-    string           varchar(255) null,
-    optional_string  varchar(255) not null,
-    bool          tinyint(1) null,
-    optional_bool tinyint(1) not null,
-    ts               timestamp null
+    id              bigint auto_increment primary key,
+    datetime        datetime     null,
+    string          varchar(255) null,
+    optional_string varchar(255) not null,
+    bool            tinyint(1)   null,
+    optional_bool   tinyint(1)   not null,
+    ts              timestamp    null
 );
 			`,
 			expectedFields: map[string]string{
@@ -201,7 +208,7 @@ create table field_type_other
 		},
 		{
 			name: "o2o two types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
@@ -213,7 +220,7 @@ create table cards
 (
     id          bigint auto_increment primary key,
     create_time timestamp not null,
-    user_card   bigint null,
+    user_card   bigint    null,
     constraint user_card unique (user_card),
     constraint cards_users_card foreign key (user_card) references users (id) on delete set null
 );
@@ -240,7 +247,7 @@ create index card_id on cards (id);
 		},
 		{
 			name: "o2o same type",
-			// language=sql
+			// language=MySQL
 			query: `
 create table nodes
 (
@@ -265,14 +272,14 @@ create table nodes
 		},
 		{
 			name: "o2o bidirectional",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
-    id           bigint auto_increment primary key,
-    name         varchar(255)                   not null,
-    nickname     varchar(255) null,
-    user_spouse  bigint null,
+    id          bigint auto_increment primary key,
+    name        varchar(255) not null,
+    nickname    varchar(255) null,
+    user_spouse bigint       null,
     constraint nickname unique (nickname),
     constraint user_spouse unique (user_spouse),
     constraint users_users_spouse foreign key (user_spouse) references users (id) on delete set null
@@ -292,19 +299,19 @@ create table users
 		},
 		{
 			name: "o2m two types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
-    id           bigint auto_increment primary key,
-    name         varchar(255)                   not null
+    id   bigint auto_increment primary key,
+    name varchar(255) not null
 );
 
 create table pet
 (
     id        bigint auto_increment primary key,
-    name      varchar(255)     not null,
-    user_pets bigint null,
+    name      varchar(255) not null,
+    user_pets bigint       null,
     constraint pet_users_pets foreign key (user_pets) references users (id) on delete set null
 );
 
@@ -330,14 +337,14 @@ create index pet_name_user_pets on pet (name, user_pets);
 		},
 		{
 			name: "o2m same type",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
-    id           bigint auto_increment
+    id          bigint auto_increment
         primary key,
-    name         varchar(255)                   not null,
-    user_parent  bigint null,
+    name        varchar(255) not null,
+    user_parent bigint       null,
     constraint users_users_parent foreign key (user_parent) references users (id) on delete set null
 );
 			`,
@@ -355,7 +362,7 @@ create table users
 		},
 		{
 			name: "m2m bidirectional",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
@@ -388,7 +395,7 @@ create table user_friends
 		},
 		{
 			name: "m2m same type",
-			// language=sql
+			// language=MySQL
 			query: `
 create table users
 (
@@ -420,19 +427,19 @@ create table user_following
 		{
 			// Demonstrate M2M relation between two different types. User and groups.
 			name: "m2m two types",
-			// language=sql
+			// language=MySQL
 			query: `
 create table some_groups
 (
-    id        bigint auto_increment primary key,
-    active    tinyint(1) default 1 not null,
-    name      varchar(255) not null
+    id     bigint auto_increment primary key,
+    active tinyint(1) default 1 not null,
+    name   varchar(255)         not null
 );
 
 create table users
 (
-    id           bigint auto_increment primary key,
-    name         varchar(255)                   not null
+    id   bigint auto_increment primary key,
+    name varchar(255) not null
 );
 
 create table user_groups
@@ -464,29 +471,29 @@ create table user_groups
 		},
 		{
 			name: "multiple relations",
-			// language=sql
+			// language=MySQL
 			query: `
 create table group_infos
 (
-    id        bigint auto_increment primary key,
-    description    varchar(255)         not null,
-    max_users bigint default 10000 not null
+    id          bigint auto_increment primary key,
+    description varchar(255)         not null,
+    max_users   bigint default 10000 not null
 );
 
 create table some_groups
 (
     id         bigint auto_increment primary key,
     name       varchar(255) not null,
-    group_info bigint null,
+    group_info bigint       null,
     constraint groups_group_infos_info foreign key (group_info) references group_infos (id) on delete set null
 );
 
 create table users
 (
     id            bigint auto_increment primary key,
-    optional_int  bigint null,
-    name          varchar(255)                   not null,
-    group_blocked bigint null,
+    optional_int  bigint       null,
+    name          varchar(255) not null,
+    group_blocked bigint       null,
     constraint users_some_groups_blocked foreign key (group_blocked) references some_groups (id) on delete set null
 );
 
@@ -559,14 +566,20 @@ create table user_groups
 }
 
 func TestPostgres(t *testing.T) {
-	r := require.New(t)
-	ctx := context.Background()
-	dsn := "host=localhost port=5432 user=postgres dbname=test password=pass sslmode=disable"
+	var (
+		r   = require.New(t)
+		ctx = context.Background()
+		dsn = "postgres://postgres:pass@localhost:5432/test?sslmode=disable"
+	)
 	db, err := sql.Open(dialect.Postgres, dsn)
 	r.NoError(err)
 	defer db.Close()
 	r.NoError(db.Ping())
-	si, err := entimport.NewPostgreSQL(entimport.WithDSN(dsn))
+	drv, err := mux.DefaultMux.OpenImport(dsn)
+	r.NoError(err)
+	si, err := entimport.NewImport(
+		entimport.WithDriver(drv),
+	)
 	r.NoError(err)
 	tests := []struct {
 		name           string
@@ -577,7 +590,7 @@ func TestPostgres(t *testing.T) {
 	}{
 		{
 			name: "one table",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
@@ -600,7 +613,7 @@ create table users
 		},
 		{
 			name: "field types - int8 and int16",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table field_types
 (
@@ -627,7 +640,7 @@ create table field_types
 		},
 		{
 			name: "int32 and int64 field types",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table field_types
 (
@@ -656,7 +669,7 @@ create table field_types
 		},
 		{
 			name: "float field types",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table field_types
 (
@@ -681,7 +694,7 @@ create table field_types
 		},
 		{
 			name: "other field types",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table field_types
 (
@@ -690,7 +703,7 @@ create table field_types
             primary key,
     datetime        date,
     decimal         numeric,
-    string          varchar not null,
+    string          varchar                                    not null,
     optional_string varchar,
     bool            boolean,
     ts              timestamp with time zone,
@@ -712,17 +725,17 @@ create table field_types
 		{
 			// See https://entgo.io/docs/schema-edges#relationship.
 			name: "o2o two types",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
     id           bigint generated by default as identity
         constraint users_pkey primary key,
     optional_int bigint,
-    name         varchar                                       not null,
+    name         varchar                                    not null,
     nickname     varchar
         constraint users_nickname_key unique,
-    role         varchar default 'user':: character varying    not null
+    role         varchar default 'user':: character varying not null
 );
 
 create table cards
@@ -763,7 +776,7 @@ create index card_id on cards (id);
 		},
 		{
 			name: "o2o same type",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table nodes
 (
@@ -791,15 +804,15 @@ create table nodes
 		},
 		{
 			name: "o2o bidirectional",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
-    id            bigint generated by default as identity
+    id          bigint generated by default as identity
         constraint users_pkey
             primary key,
-    name          varchar                                      not null,
-    user_spouse   bigint
+    name        varchar not null,
+    user_spouse bigint
         constraint users_user_spouse_key
             unique
         constraint users_users_spouse
@@ -822,7 +835,7 @@ create table users
 		},
 		{
 			name: "o2m two types",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
@@ -866,15 +879,15 @@ create index pet_name_user_pets
 		},
 		{
 			name: "o2m same type",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
-    id            bigint generated by default as identity
+    id          bigint generated by default as identity
         constraint users_pkey
             primary key,
-    name          varchar                                      not null,
-    user_parent   bigint
+    name        varchar not null,
+    user_parent bigint
         constraint users_users_parent
             references users
             on delete set null
@@ -894,7 +907,7 @@ create table users
 		},
 		{
 			name: "m2m bidirectional",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
@@ -933,17 +946,17 @@ create table user_friends
 		},
 		{
 			name: "m2m same type",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
-    id            bigint generated by default as identity
+    id   bigint generated by default as identity
         constraint users_pkey
             primary key,
-    name          varchar                                      not null,
-    last          varchar default 'unknown'::character varying not null
+    name varchar                                      not null,
+    last varchar default 'unknown'::character varying not null
 );
-				
+
 create table user_following
 (
     user_id     bigint not null
@@ -972,7 +985,7 @@ create table user_following
 		},
 		{
 			name: "m2m two types",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table users
 (
@@ -1003,7 +1016,7 @@ create table user_groups
             on delete cascade,
     constraint user_groups_pkey
         primary key (user_id, group_id)
-);				
+);
 					`,
 			entities: []string{"user", "group"},
 			expectedFields: map[string]string{
@@ -1025,23 +1038,22 @@ create table user_groups
 		},
 		{
 			name: "multiple relations",
-			// language=sql
+			// language=PostgreSQL
 			query: `
 create table group_infos
 (
-    id        bigint generated by default as identity
-        constraint group_infos_pkey
-            primary key,
-    description    varchar              not null,
-    max_users bigint default 10000 not null
+    id          bigint generated by default as identity
+        constraint group_infos_pkey primary key,
+    description varchar              not null,
+    max_users   bigint default 10000 not null
 );
 
 create table users
 (
-    id           bigint generated by default as identity
+    id   bigint generated by default as identity
         constraint users_pkey
             primary key,
-    name         varchar not null
+    name varchar not null
 );
 
 create table groups
@@ -1049,7 +1061,7 @@ create table groups
     id         bigint generated by default as identity
         constraint groups_pkey
             primary key,
-    name       varchar                  not null,
+    name       varchar not null,
     group_info bigint
         constraint groups_group_infos_info
             references group_infos
@@ -1068,7 +1080,7 @@ create table user_groups
             on delete cascade,
     constraint user_groups_pkey
         primary key (user_id, group_id)
-);		
+);
 					`,
 			entities: []string{"user", "group", "group_info"},
 			expectedFields: map[string]string{

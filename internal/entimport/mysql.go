@@ -2,19 +2,14 @@ package entimport
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 
-	"ariga.io/atlas/sql/mysql"
 	"ariga.io/atlas/sql/schema"
 
 	"entgo.io/contrib/schemast"
 	"entgo.io/ent"
-	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
-	mysqldriver "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -27,44 +22,22 @@ const (
 
 // MySQL holds the schema import options and an Atlas inspector instance
 type MySQL struct {
-	schema.Inspector
-	Options *ImportOptions
+	*ImportOptions
 }
 
 // NewMySQL - create aמ import structure for MySQL.
-func NewMySQL(opts ...ImportOption) (*MySQL, error) {
-	i := &ImportOptions{}
-	for _, apply := range opts {
-		apply(i)
-	}
-	db, err := sql.Open(dialect.MySQL, i.dsn)
-	if err != nil {
-		return nil, fmt.Errorf("entimport: failed to open db connection: %w", err)
-	}
-	drv, err := mysql.Open(db)
-	if err != nil {
-		return nil, fmt.Errorf("entimport: error while trying to open db inspection client %w", err)
-	}
+func NewMySQL(i *ImportOptions) (*MySQL, error) {
 	return &MySQL{
-		Inspector: drv,
-		Options:   i,
+		ImportOptions: i,
 	}, nil
 }
 
 // SchemaMutations implements SchemaImporter.
 func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error) {
 	inspectOptions := &schema.InspectOptions{
-		Tables: m.Options.tables,
+		Tables: m.tables,
 	}
-	// dsn example: root:pass@tcp(localhost:3308)/test?parseTime=True
-	cfg, err := mysqldriver.ParseDSN(m.Options.dsn)
-	if err != nil {
-		return nil, err
-	}
-	if cfg.DBName == "" {
-		return nil, errors.New("DSN connection string must include schema(database) name")
-	}
-	s, err := m.Inspector.InspectSchema(ctx, cfg.DBName, inspectOptions)
+	s, err := m.driver.InspectSchema(ctx, m.driver.SchemaName, inspectOptions)
 	if err != nil {
 		return nil, err
 	}

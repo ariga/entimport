@@ -229,9 +229,9 @@ func resolvePrimaryKey(field fieldFunc, table *schema.Table) (f ent.Field, err e
 	if f, err = field(table.PrimaryKey.Parts[0].C); err != nil {
 		return nil, err
 	}
-	if f.Descriptor().Name != "id" {
-		f.Descriptor().StorageKey = f.Descriptor().Name
-		f.Descriptor().Name = "id"
+	if d := f.Descriptor(); d.Name != "id" {
+		d.StorageKey = d.Name
+		d.Name = "id"
 	}
 	return f, nil
 }
@@ -278,7 +278,7 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 			// FK / Reference column
 			fld, ok := fields[column.Name]
 			if !ok {
-				return nil, fmt.Errorf("foreign key for column: %q doesn't exist in fields set", column.Name)
+				return nil, fmt.Errorf("foreign key for column: %q doesn't exist in referenced table", column.Name)
 			}
 			fld.Descriptor().Optional = true
 		}

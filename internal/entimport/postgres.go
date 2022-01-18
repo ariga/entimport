@@ -21,8 +21,7 @@ import (
 // Postgres implements SchemaImporter for PostgreSQL databases.
 type Postgres struct {
 	schema.Inspector
-	Options   *ImportOptions
-	mutations map[string]schemast.Mutator
+	Options *ImportOptions
 }
 
 // NewPostgreSQL - returns a new *Postgres.
@@ -62,98 +61,7 @@ func (p *Postgres) SchemaMutations(ctx context.Context) ([]schemast.Mutator, err
 	if err != nil {
 		return nil, err
 	}
-	p.mutations = make(map[string]schemast.Mutator, len(s.Tables))
-	return p.schemaMutations(s.Tables)
-}
-
-func (p *Postgres) schemaMutations(tables []*schema.Table) ([]schemast.Mutator, error) {
-	joinTables := make(map[string]*schema.Table)
-	for _, table := range tables {
-		if isJoinTable(table) {
-			joinTables[table.Name] = table
-			continue
-		}
-		if _, err := p.upsertNode(table); err != nil {
-			return nil, err
-		}
-	}
-	for _, table := range tables {
-		if t, ok := joinTables[table.Name]; ok {
-			err := upsertManyToMany(p.mutations, t)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-		p.upsertOneToX(table)
-	}
-	ml := make([]schemast.Mutator, 0, len(p.mutations))
-	for _, mutator := range p.mutations {
-		ml = append(ml, mutator)
-	}
-	return ml, nil
-}
-
-// O2O Two Types - Child Table has a unique reference (FK) to Parent table
-// O2O Same Type - Child Table has a unique reference (FK) to Parent table (itself)
-// O2M (The "Many" side, keeps a reference to the "One" side).
-// O2M Two Types - Parent has a non-unique reference to Child, and Child has a unique back-reference to Parent
-// O2M Same Type - Parent has a non-unique reference to Child, and Child doesn't have a back-reference to Parent.
-func (p *Postgres) upsertOneToX(table *schema.Table) {
-	if table.ForeignKeys == nil {
-		return
-	}
-	idxs := make(map[string]*schema.Index, len(table.Indexes))
-	for _, idx := range table.Indexes {
-		if len(idx.Parts) != 1 {
-			continue
-		}
-		idxs[idx.Parts[0].C.Name] = idx
-	}
-	for _, fk := range table.ForeignKeys {
-		if len(fk.Columns) != 1 {
-			continue
-		}
-		parent := fk.RefTable
-		child := table
-		col := fk.Columns[0].Name
-		opts := options{
-			uniqueEdgeFromParent: true,
-			refName:              child.Name,
-			edgeField:            col,
-		}
-		if child.Name == parent.Name {
-			opts.recursive = true
-		}
-		idx, ok := idxs[col]
-		if ok && idx.Unique {
-			opts.uniqueEdgeToChild = true
-		}
-		// If at least one table in the relation does not exist, there is no point to create it.
-		parentNode, ok := p.mutations[parent.Name].(*schemast.UpsertSchema)
-		if !ok {
-			return
-		}
-		childNode, ok := p.mutations[child.Name].(*schemast.UpsertSchema)
-		if !ok {
-			return
-		}
-		upsertRelation(parentNode, childNode, opts)
-	}
-}
-
-func (p *Postgres) resolvePrimaryKey(table *schema.Table) (f ent.Field, err error) {
-	if table.PrimaryKey == nil || len(table.PrimaryKey.Parts) != 1 {
-		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present")
-	}
-	if f, err = p.field(table.PrimaryKey.Parts[0].C); err != nil {
-		return nil, err
-	}
-	if f.Descriptor().Name != "id" {
-		f.Descriptor().StorageKey = f.Descriptor().Name
-		f.Descriptor().Name = "id"
-	}
-	return f, nil
+	return schemaMutations(p.field, s.Tables)
 }
 
 func (p *Postgres) field(column *schema.Column) (f ent.Field, err error) {
@@ -184,7 +92,7 @@ func (p *Postgres) field(column *schema.Column) (f ent.Field, err error) {
 	default:
 		return nil, fmt.Errorf("entimport: unsupported type %q", typ)
 	}
-	p.applyColumnAttributes(f, column)
+	applyColumnAttributes(f, column)
 	return f, err
 }
 
@@ -213,63 +121,6 @@ func (p *Postgres) convertInteger(typ *schema.IntegerType, name string) (f ent.F
 		f = field.Int(name)
 	}
 	return f
-}
-
-func (p *Postgres) applyColumnAttributes(f ent.Field, col *schema.Column) {
-	desc := f.Descriptor()
-	desc.Optional = col.Type.Null
-	for _, attr := range col.Attrs {
-		if a, ok := attr.(*schema.Comment); ok {
-			desc.Comment = a.Text
-		}
-	}
-}
-
-func (p *Postgres) upsertNode(table *schema.Table) (*schemast.UpsertSchema, error) {
-	upsert := &schemast.UpsertSchema{
-		Name: typeName(table.Name),
-	}
-	if u, ok := p.mutations[table.Name].(*schemast.UpsertSchema); ok {
-		upsert = u
-	}
-	fields := make(map[string]ent.Field, len(upsert.Fields))
-	for _, f := range upsert.Fields {
-		fields[f.Descriptor().Name] = f
-	}
-	pk, err := p.resolvePrimaryKey(table)
-	if err != nil {
-		return nil, err
-	}
-	if _, ok := fields[pk.Descriptor().Name]; !ok {
-		fields[pk.Descriptor().Name] = pk
-		upsert.Fields = append(upsert.Fields, pk)
-	}
-	for _, column := range table.Columns {
-		if column.Name == table.PrimaryKey.Parts[0].C.Name {
-			continue
-		}
-		fld, err := p.field(column)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := fields[column.Name]; !ok {
-			fields[column.Name] = fld
-			upsert.Fields = append(upsert.Fields, fld)
-		}
-	}
-	for _, index := range table.Indexes {
-		if index.Unique && len(index.Parts) == 1 {
-			fields[index.Parts[0].C.Name].Descriptor().Unique = true
-		}
-	}
-	for _, fk := range table.ForeignKeys {
-		for _, column := range fk.Columns {
-			// FK / Reference column
-			fields[column.Name].Descriptor().Optional = true
-		}
-	}
-	p.mutations[table.Name] = upsert
-	return upsert, err
 }
 
 // smallserial- 2 bytes - small autoincrementing integer 1 to 32767

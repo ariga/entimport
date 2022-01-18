@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
-	"github.com/go-openapi/inflect"
 	mysqldriver "github.com/go-sql-driver/mysql"
 )
 
@@ -29,8 +28,7 @@ const (
 // MySQL holds the schema import options and an Atlas inspector instance
 type MySQL struct {
 	schema.Inspector
-	Options   *ImportOptions
-	mutations map[string]schemast.Mutator
+	Options *ImportOptions
 }
 
 // NewMySQL - create aמ import structure for MySQL.
@@ -70,50 +68,7 @@ func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error)
 	if err != nil {
 		return nil, err
 	}
-	m.mutations = make(map[string]schemast.Mutator, len(s.Tables))
-	return m.schemaMutations(s.Tables)
-}
-
-func (m *MySQL) schemaMutations(tables []*schema.Table) ([]schemast.Mutator, error) {
-	joinTables := make(map[string]*schema.Table)
-	for _, table := range tables {
-		if isJoinTable(table) {
-			joinTables[table.Name] = table
-			continue
-		}
-		if _, err := m.upsertNode(table); err != nil {
-			return nil, err
-		}
-	}
-	for _, table := range tables {
-		if t, ok := joinTables[table.Name]; ok {
-			err := upsertManyToMany(m.mutations, t)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-		m.upsertOneToX(table)
-	}
-	ml := make([]schemast.Mutator, 0, len(m.mutations))
-	for _, mutator := range m.mutations {
-		ml = append(ml, mutator)
-	}
-	return ml, nil
-}
-
-func (m *MySQL) resolvePrimaryKey(table *schema.Table) (f ent.Field, err error) {
-	if table.PrimaryKey == nil || len(table.PrimaryKey.Parts) != 1 {
-		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present")
-	}
-	if f, err = m.field(table.PrimaryKey.Parts[0].C); err != nil {
-		return nil, err
-	}
-	if f.Descriptor().Name != "id" {
-		f.Descriptor().StorageKey = f.Descriptor().Name
-		f.Descriptor().Name = "id"
-	}
-	return f, nil
+	return schemaMutations(m.field, s.Tables)
 }
 
 func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {
@@ -140,7 +95,7 @@ func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {
 	default:
 		return nil, fmt.Errorf("entimport: unsupported type %q", typ)
 	}
-	m.applyColumnAttributes(f, column)
+	applyColumnAttributes(f, column)
 	return f, err
 }
 
@@ -184,112 +139,4 @@ func (m *MySQL) convertInteger(typ *schema.IntegerType, name string) (f ent.Fiel
 		f = field.Int(name)
 	}
 	return f
-}
-
-func (m *MySQL) applyColumnAttributes(f ent.Field, col *schema.Column) {
-	desc := f.Descriptor()
-	desc.Optional = col.Type.Null
-	for _, attr := range col.Attrs {
-		if a, ok := attr.(*schema.Comment); ok {
-			desc.Comment = a.Text
-		}
-	}
-	for _, idx := range col.Indexes {
-		if idx.Unique && len(idx.Parts) == 1 {
-			desc.Unique = idx.Unique
-		}
-	}
-	// FK / Reference column
-	if col.ForeignKeys != nil {
-		desc.Optional = true
-	}
-}
-
-// O2O Two Types - Child Table has a unique reference (FK) to Parent table
-// O2O Same Type - Child Table has a unique reference (FK) to Parent table (itself)
-// O2M (The "Many" side, keeps a reference to the "One" side).
-// O2M Two Types - Parent has a non-unique reference to Child, and Child has a unique back-reference to Parent
-// O2M Same Type - Parent has a non-unique reference to Child, and Child doesn't have a back-reference to Parent.
-func (m *MySQL) upsertOneToX(table *schema.Table) {
-	if table.ForeignKeys == nil || table.Indexes == nil {
-		return
-	}
-	for _, fk := range table.ForeignKeys {
-		if len(fk.Columns) != 1 {
-			continue
-		}
-		for _, idx := range table.Indexes {
-			if len(idx.Parts) != 1 {
-				continue
-			}
-			// MySQL requires indexes on foreign keys and referenced keys.
-			if fk.Columns[0] == idx.Parts[0].C {
-				parent := fk.RefTable
-				child := table
-				opts := options{
-					uniqueEdgeFromParent: true,
-					refName:              child.Name,
-				}
-				if child.Name == parent.Name {
-					opts.recursive = true
-				}
-				if idx.Unique {
-					opts.uniqueEdgeToChild = true
-				}
-				opts.edgeField = fk.Columns[0].Name
-				// If at least one table in the relation does not exist, there is no point to create it.
-				parentNode, ok := m.mutations[parent.Name].(*schemast.UpsertSchema)
-				if !ok {
-					return
-				}
-				childNode, ok := m.mutations[child.Name].(*schemast.UpsertSchema)
-				if !ok {
-					return
-				}
-				upsertRelation(parentNode, childNode, opts)
-			}
-		}
-	}
-}
-
-func (m *MySQL) upsertNode(table *schema.Table) (*schemast.UpsertSchema, error) {
-	upsert := &schemast.UpsertSchema{
-		Name: typeName(table.Name),
-	}
-	if u, ok := m.mutations[table.Name].(*schemast.UpsertSchema); ok {
-		upsert = u
-	}
-	fields := make(map[string]ent.Field, len(upsert.Fields))
-	for _, f := range upsert.Fields {
-		fields[f.Descriptor().Name] = f
-	}
-	pk, err := m.resolvePrimaryKey(table)
-	if err != nil {
-		return nil, err
-	}
-	if _, ok := fields[pk.Descriptor().Name]; !ok {
-		upsert.Fields = append(upsert.Fields, pk)
-	}
-	for _, column := range table.Columns {
-		if column.Name == table.PrimaryKey.Parts[0].C.Name {
-			continue
-		}
-		fld, err := m.field(column)
-		if err != nil {
-			return nil, err
-		}
-		if _, ok := fields[column.Name]; !ok {
-			upsert.Fields = append(upsert.Fields, fld)
-		}
-	}
-	m.mutations[table.Name] = upsert
-	return upsert, err
-}
-
-func typeName(tableName string) string {
-	return inflect.Camelize(inflect.Singularize(tableName))
-}
-
-func tableName(typeName string) string {
-	return inflect.Underscore(inflect.Pluralize(typeName))
 }

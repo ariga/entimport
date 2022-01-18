@@ -32,7 +32,7 @@ type (
 		edgeField            string
 	}
 
-	// field receives an Atlas column and converts in to an ent field.
+	// fieldFunc receives an Atlas column and converts it to an Ent field.
 	fieldFunc func(column *schema.Column) (f ent.Field, err error)
 )
 

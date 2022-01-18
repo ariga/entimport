@@ -31,6 +31,9 @@ type (
 		refName              string
 		edgeField            string
 	}
+
+	// field receives an Atlas column and converts in to an ent field.
+	fieldFunc func(column *schema.Column) (f ent.Field, err error)
 )
 
 // ImportOption allows for managing import configuration using functional options.
@@ -62,8 +65,6 @@ func WithTables(tables []string) ImportOption {
 type SchemaImporter interface {
 	// SchemaMutations imports a given schema from a data source and returns a list of schemast mutators.
 	SchemaMutations(context.Context) ([]schemast.Mutator, error)
-	// field receives an Atlas column and converts in to an ent field.
-	field(column *schema.Column) (f ent.Field, err error)
 }
 
 // ImportOptions are the options passed to the importer functions.
@@ -221,11 +222,11 @@ func tableName(typeName string) string {
 }
 
 // resolvePrimaryKey returns the primary key as an ent field for a given table.
-func resolvePrimaryKey(importer SchemaImporter, table *schema.Table) (f ent.Field, err error) {
+func resolvePrimaryKey(field fieldFunc, table *schema.Table) (f ent.Field, err error) {
 	if table.PrimaryKey == nil || len(table.PrimaryKey.Parts) != 1 {
 		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present")
 	}
-	if f, err = importer.field(table.PrimaryKey.Parts[0].C); err != nil {
+	if f, err = field(table.PrimaryKey.Parts[0].C); err != nil {
 		return nil, err
 	}
 	if f.Descriptor().Name != "id" {
@@ -236,7 +237,7 @@ func resolvePrimaryKey(importer SchemaImporter, table *schema.Table) (f ent.Fiel
 }
 
 // upsertNode handles the creation of a node from a given table.
-func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, error) {
+func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, error) {
 	upsert := &schemast.UpsertSchema{
 		Name: typeName(table.Name),
 	}
@@ -244,7 +245,7 @@ func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, 
 	for _, f := range upsert.Fields {
 		fields[f.Descriptor().Name] = f
 	}
-	pk, err := resolvePrimaryKey(i, table)
+	pk, err := resolvePrimaryKey(field, table)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +259,7 @@ func upsertNode(i SchemaImporter, table *schema.Table) (*schemast.UpsertSchema, 
 			table.PrimaryKey.Parts[0].C.Name == column.Name {
 			continue
 		}
-		fld, err := i.field(column)
+		fld, err := field(column)
 		if err != nil {
 			return nil, err
 		}
@@ -297,7 +298,7 @@ func applyColumnAttributes(f ent.Field, col *schema.Column) {
 }
 
 // schemaMutations is in charge of creating all the schema mutations needed for an ent schema.
-func schemaMutations(importer SchemaImporter, tables []*schema.Table) ([]schemast.Mutator, error) {
+func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutator, error) {
 	mutations := make(map[string]schemast.Mutator)
 	joinTables := make(map[string]*schema.Table)
 	for _, table := range tables {
@@ -305,7 +306,7 @@ func schemaMutations(importer SchemaImporter, tables []*schema.Table) ([]schemas
 			joinTables[table.Name] = table
 			continue
 		}
-		node, err := upsertNode(importer, table)
+		node, err := upsertNode(field, table)
 		if err != nil {
 			return nil, err
 		}

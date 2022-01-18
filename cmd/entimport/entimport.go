@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"ariga.io/entimport/internal/entimport"
+	"ariga.io/entimport/internal/mux"
 )
 
 var tablesFlag tables
@@ -18,9 +19,11 @@ func init() {
 }
 
 func main() {
-	dsn := flag.String("dsn", "", "data source name (connection information)")
+	dsn := flag.String("dsn", "",
+		`data source name (connection information), for example:
+"mysql://user:pass@tcp(localhost:3306)/dbname"
+"postgres://user:pass@host:port/dbname"`)
 	schemaPath := flag.String("schema-path", "./ent/schema", "output path for ent schema")
-	dialect := flag.String("dialect", "mysql", "database dialect")
 	flag.Parse()
 	if *dsn == "" {
 		log.Println("entimport: data source name (dsn) must be provided")
@@ -28,11 +31,16 @@ func main() {
 		os.Exit(2)
 	}
 	ctx := context.Background()
-	i, err := entimport.NewImport(*dialect,
-		entimport.WithDSN(*dsn),
-		entimport.WithTables(tablesFlag))
+	drv, err := mux.Default.OpenImport(*dsn)
 	if err != nil {
-		log.Fatalf("entimport: create importer (%s) failed - %v", *dialect, err)
+		log.Fatalf("entimport: failed to create import driver - %v", err)
+	}
+	i, err := entimport.NewImport(
+		entimport.WithTables(tablesFlag),
+		entimport.WithDriver(drv),
+	)
+	if err != nil {
+		log.Fatalf("entimport: create importer failed: %v", err)
 	}
 	mutations, err := i.SchemaMutations(ctx)
 	if err != nil {

@@ -45,7 +45,7 @@ go run ariga.io/entimport/cmd/entimport
 - For example, importing a MySQL schema with `users` table:
 
 ```shell
-go run ariga.io/entimport/cmd/entimport -dialect mysql -dsn "root:pass@tcp(localhost:3308)/test" -tables "users"
+go run ariga.io/entimport/cmd/entimport -dsn "mysql://root:pass@tcp(localhost:3308)/test" -tables "users"
 ```
 
 The command above will write a valid ent schema into the directory specified (or the default `./ent/schema`):
@@ -82,10 +82,10 @@ entimport  -h
 
 ```
 Usage of ./entimport:
-  -dialect string
-        database dialect (default "mysql")
   -dsn string
-        data source name (connection information)
+        data source name (connection information), for example:
+        "mysql://user:pass@tcp(localhost:3306)/dbname"
+        "postgres://user:pass@host:port/dbname"
   -schema-path string
         output path for ent schema (default "./ent/schema")
   -tables value
@@ -99,13 +99,13 @@ Usage of ./entimport:
 > Note: add search_path=foo if you use non `public` schema.
 
 ```shell
-go run ariga.io/entimport/cmd/entimport -dialect postgres -dsn "host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable" 
+go run ariga.io/entimport/cmd/entimport -dsn "postgres://postgres:pass@localhost:5432/test?sslmode=disable" 
 ```
 
 2. Import ent schema from MySQL database
 
 ```shell
-go run ariga.io/entimport/cmd/entimport -dialect mysql -dsn "root:pass@tcp(localhost:3308)/test"
+go run ariga.io/entimport/cmd/entimport -dsn "mysql://root:pass@tcp(localhost:3308)/test"
 ```
 
 3. Import only specific tables:
@@ -116,13 +116,13 @@ go run ariga.io/entimport/cmd/entimport -dialect mysql -dsn "root:pass@tcp(local
 > If the `-tables` flags is omitted all tables in current `database schema` will be imported
 
 ```shell
-go run ariga.io/entimport/cmd/entimport -dialect postgres -dsn "..." -tables "users,user_friends" 
+go run ariga.io/entimport/cmd/entimport -dsn "..." -tables "users,user_friends" 
 ```
 
 4. Import to another directory:
 
 ```shell
-go run ariga.io/entimport/cmd/entimport -dialect postgres -dsn "..." -schema-path "/some/path/here"
+go run ariga.io/entimport/cmd/entimport -dsn "..." -schema-path "/some/path/here"
 ```
 
 ## Future Work
@@ -140,7 +140,7 @@ go run ariga.io/entimport/cmd/entimport -dialect postgres -dsn "..." -schema-pat
 - There is no difference in DB schema between `O2O Bidirectional` and `O2O Same Type` - both will result in the same
   `ent` schema.
 - There is no difference in DB schema between `M2M Bidirectional` and `M2M Same Type` - both will result in the same
-- `ent` schema.
+ `ent` schema.
 - In recursive relations the `edge` names will be prefixed with `child_` & `parent_`.
 - For example: `users` with M2M relation to itself will result in:
 

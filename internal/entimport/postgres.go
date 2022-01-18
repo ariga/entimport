@@ -2,10 +2,8 @@ package entimport
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"regexp"
 
 	"ariga.io/atlas/sql/postgres"
 	"ariga.io/atlas/sql/schema"
@@ -20,44 +18,22 @@ import (
 
 // Postgres implements SchemaImporter for PostgreSQL databases.
 type Postgres struct {
-	schema.Inspector
-	Options *ImportOptions
+	*ImportOptions
 }
 
 // NewPostgreSQL - returns a new *Postgres.
-func NewPostgreSQL(opts ...ImportOption) (*Postgres, error) {
-	i := &ImportOptions{}
-	for _, apply := range opts {
-		apply(i)
-	}
-	db, err := sql.Open(dialect.Postgres, i.dsn)
-	if err != nil {
-		return nil, fmt.Errorf("entimport: failed to open db connection: %w", err)
-	}
-	drv, err := postgres.Open(db)
-	if err != nil {
-		return nil, fmt.Errorf("entimport: error while trying to open db inspection client %w", err)
-	}
+func NewPostgreSQL(i *ImportOptions) (SchemaImporter, error) {
 	return &Postgres{
-		Inspector: drv,
-		Options:   i,
+		ImportOptions: i,
 	}, nil
 }
 
 // SchemaMutations implements SchemaImporter.
 func (p *Postgres) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error) {
 	inspectOptions := &schema.InspectOptions{
-		Tables: p.Options.tables,
+		Tables: p.tables,
 	}
-	// dsn example: "host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable search_path=public"
-	schemaName := "public"
-	r := regexp.MustCompile(`search_path=(\S+)`)
-	matches := r.FindStringSubmatch(p.Options.dsn)
-	if len(matches) != 0 {
-		schemaName = matches[1]
-	}
-
-	s, err := p.Inspector.InspectSchema(ctx, schemaName, inspectOptions)
+	s, err := p.driver.InspectSchema(ctx, p.driver.SchemaName, inspectOptions)
 	if err != nil {
 		return nil, err
 	}

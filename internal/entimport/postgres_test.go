@@ -3,8 +3,6 @@ package entimport_test
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
@@ -14,19 +12,18 @@ import (
 
 	"ariga.io/entimport/internal/entimport"
 
+	"entgo.io/ent/dialect"
 	"github.com/go-openapi/inflect"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPostgres(t *testing.T) {
-	const testSchema = "public"
-	r := require.New(t)
-	ctx := context.Background()
-	dsn := "host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable"
-	i := &entimport.ImportOptions{}
-	entimport.WithDSN(dsn)(i)
-	importer := &entimport.Postgres{Options: i}
+	var (
+		r          = require.New(t)
+		ctx        = context.Background()
+		testSchema = "public"
+	)
 	tests := []struct {
 		name           string
 		entities       []string
@@ -273,9 +270,13 @@ func TestPostgres(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			schemas := createTempDir(t)
-			mock := &Inspector{}
-			mock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(tt.mock, nil)
-			importer.Inspector = mock
+			m := mockMux(ctx, dialect.Postgres, tt.mock, testSchema)
+			drv, err := m.OpenImport("postgres://postgres:pass@localhost:5434/test")
+			r.NoError(err)
+			importer, err := entimport.NewImport(
+				entimport.WithDriver(drv),
+			)
+			r.NoError(err)
 			mutations, err := importer.SchemaMutations(ctx)
 			r.NoError(err)
 			err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(schemas))
@@ -304,44 +305,15 @@ func TestPostgres(t *testing.T) {
 }
 
 func TestPostgresJoinTableOnly(t *testing.T) {
-	ctx := context.Background()
-	importer := &entimport.Postgres{
-		Options: &entimport.ImportOptions{},
-	}
-	mock := &Inspector{}
-	mock.On("InspectSchema", ctx, "public", &schema.InspectOptions{}).Return(MockPostgresM2MJoinTableOnly(), nil)
-	importer.Inspector = mock
+	var ctx = context.Background()
+	m := mockMux(ctx, dialect.Postgres, MockPostgresM2MJoinTableOnly(), "public")
+	drv, err := m.OpenImport("postgres://postgres:pass@localhost:5434/test")
+	require.NoError(t, err)
+	importer, err := entimport.NewImport(
+		entimport.WithDriver(drv),
+	)
+	require.NoError(t, err)
 	mutations, err := importer.SchemaMutations(ctx)
 	require.Empty(t, mutations)
 	require.Errorf(t, err, "join tables must be inspected with ref tables - append `tables` flag")
-}
-
-func TestPostgresNonDefaultSearchPath(t *testing.T) {
-	ctx := context.Background()
-	pgSchema := "non_public"
-	dsn := fmt.Sprintf("host=localhost port=5434 user=postgres dbname=test password=pass sslmode=disable search_path=%s", pgSchema)
-	i := &entimport.ImportOptions{}
-	entimport.WithDSN(dsn)(i)
-	importer := &entimport.Postgres{Options: i}
-	mock := &Inspector{}
-	mock.On("InspectSchema", ctx, pgSchema, &schema.InspectOptions{}).Return(&schema.Schema{}, nil)
-	importer.Inspector = mock
-	_, _ = importer.SchemaMutations(ctx)
-	mock.AssertCalled(t, "InspectSchema", ctx, pgSchema, &schema.InspectOptions{})
-}
-
-func lookupMethod(file *ast.File, typeName string, methodName string) (m *ast.FuncDecl) {
-	ast.Inspect(file, func(node ast.Node) bool {
-		if decl, ok := node.(*ast.FuncDecl); ok {
-			if decl.Name.Name != methodName || decl.Recv == nil || len(decl.Recv.List) != 1 {
-				return true
-			}
-			if id, ok := decl.Recv.List[0].Type.(*ast.Ident); ok && id.Name == typeName {
-				m = decl
-				return false
-			}
-		}
-		return true
-	})
-	return m
 }

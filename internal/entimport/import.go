@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"ariga.io/atlas/sql/schema"
+	"ariga.io/entimport/internal/mux"
 
 	"entgo.io/contrib/schemast"
 	"entgo.io/ent"
@@ -24,7 +25,9 @@ var joinTableErr = errors.New("entimport: join tables must be inspected with ref
 
 type (
 	edgeDir int
-	options struct {
+
+	// relOptions are the options passed down to the functions that create a relation.
+	relOptions struct {
 		uniqueEdgeToChild    bool
 		recursive            bool
 		uniqueEdgeFromParent bool
@@ -34,18 +37,23 @@ type (
 
 	// fieldFunc receives an Atlas column and converts it to an Ent field.
 	fieldFunc func(column *schema.Column) (f ent.Field, err error)
-)
 
-// ImportOption allows for managing import configuration using functional options.
-type ImportOption func(*ImportOptions)
-
-// WithDSN provides a DSN (data source name) for reading the schema & tables from.
-// DSN must include a schema (named-database) in the connection string.
-func WithDSN(dsn string) ImportOption {
-	return func(i *ImportOptions) {
-		i.dsn = dsn
+	// SchemaImporter is the interface that wraps the SchemaMutations method.
+	SchemaImporter interface {
+		// SchemaMutations imports a given schema from a data source and returns a list of schemast mutators.
+		SchemaMutations(context.Context) ([]schemast.Mutator, error)
 	}
-}
+
+	// ImportOptions are the options passed on to every SchemaImporter.
+	ImportOptions struct {
+		tables     []string
+		schemaPath string
+		driver     *mux.ImportDriver
+	}
+
+	// ImportOption allows for managing import configuration using functional options.
+	ImportOption func(*ImportOptions)
+)
 
 // WithSchemaPath provides a DSN (data source name) for reading the schema & tables from.
 func WithSchemaPath(path string) ImportOption {
@@ -61,38 +69,36 @@ func WithTables(tables []string) ImportOption {
 	}
 }
 
-// SchemaImporter is the interface that wraps the SchemaMutations method.
-type SchemaImporter interface {
-	// SchemaMutations imports a given schema from a data source and returns a list of schemast mutators.
-	SchemaMutations(context.Context) ([]schemast.Mutator, error)
-}
-
-// ImportOptions are the options passed to the importer functions.
-type ImportOptions struct {
-	dsn        string
-	tables     []string
-	schemaPath string
+// WithDriver provides an import driver to be used by SchemaImporter.
+func WithDriver(drv *mux.ImportDriver) ImportOption {
+	return func(i *ImportOptions) {
+		i.driver = drv
+	}
 }
 
 // NewImport calls the relevant data source importer based on a given dialect.
-func NewImport(dialectName string, opts ...ImportOption) (SchemaImporter, error) {
+func NewImport(opts ...ImportOption) (SchemaImporter, error) {
 	var (
 		si  SchemaImporter
 		err error
 	)
-	switch dialectName {
+	i := &ImportOptions{}
+	for _, apply := range opts {
+		apply(i)
+	}
+	switch i.driver.Dialect {
 	case dialect.MySQL:
-		si, err = NewMySQL(opts...)
+		si, err = NewMySQL(i)
 		if err != nil {
 			return nil, err
 		}
 	case dialect.Postgres:
-		si, err = NewPostgreSQL(opts...)
+		si, err = NewPostgreSQL(i)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("entimport: unsupported dialect %q", dialectName)
+		return nil, fmt.Errorf("entimport: unsupported dialect %q", i.driver.Dialect)
 	}
 	return si, err
 }
@@ -114,7 +120,7 @@ func WriteSchema(mutations []schemast.Mutator, opts ...ImportOption) error {
 }
 
 // entEdge creates an edge based on the given params and direction.
-func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir edgeDir, opts options) (e ent.Edge) {
+func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir edgeDir, opts relOptions) (e ent.Edge) {
 	switch dir {
 	case to:
 		e = edge.To(nodeName, ent.Schema.Type)
@@ -151,7 +157,7 @@ func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir 
 }
 
 // setEdgeField is a function to properly name edge fields.
-func setEdgeField(e ent.Edge, opts options, childNode *schemast.UpsertSchema) {
+func setEdgeField(e ent.Edge, opts relOptions, childNode *schemast.UpsertSchema) {
 	edgeField := opts.edgeField
 	// rename the field in case the edge and the field have the same name
 	if e.Descriptor().Name == edgeField {
@@ -166,7 +172,7 @@ func setEdgeField(e ent.Edge, opts options, childNode *schemast.UpsertSchema) {
 }
 
 // upsertRelation takes 2 nodes and created the edges between them.
-func upsertRelation(nodeA *schemast.UpsertSchema, nodeB *schemast.UpsertSchema, opts options) {
+func upsertRelation(nodeA *schemast.UpsertSchema, nodeB *schemast.UpsertSchema, opts relOptions) {
 	tableA := tableName(nodeA.Name)
 	tableB := tableName(nodeB.Name)
 	opts.refName = tableB
@@ -180,7 +186,7 @@ func upsertRelation(nodeA *schemast.UpsertSchema, nodeB *schemast.UpsertSchema, 
 func upsertManyToMany(mutations map[string]schemast.Mutator, table *schema.Table) error {
 	tableA := table.ForeignKeys[0].RefTable
 	tableB := table.ForeignKeys[1].RefTable
-	var opts options
+	var opts relOptions
 	if tableA.Name == tableB.Name {
 		opts.recursive = true
 	}
@@ -352,7 +358,7 @@ func upsertOneToX(mutations map[string]schemast.Mutator, table *schema.Table) {
 		parent := fk.RefTable
 		child := table
 		colName := fk.Columns[0].Name
-		opts := options{
+		opts := relOptions{
 			uniqueEdgeFromParent: true,
 			refName:              child.Name,
 			edgeField:            colName,

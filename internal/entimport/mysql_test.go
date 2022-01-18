@@ -11,18 +11,18 @@ import (
 	"ariga.io/atlas/sql/schema"
 	"ariga.io/entimport/internal/entimport"
 
+	"entgo.io/ent/dialect"
 	"github.com/go-openapi/inflect"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMySQL(t *testing.T) {
-	const testSchema = "test"
-	r := require.New(t)
-	ctx := context.Background()
-	i := &entimport.ImportOptions{}
-	entimport.WithDSN("root:pass@tcp(localhost:3308)/test?parseTime=True")(i)
-	importer := &entimport.MySQL{Options: i}
+	var (
+		r          = require.New(t)
+		ctx        = context.Background()
+		testSchema = "test"
+	)
 	tests := []struct {
 		name           string
 		entities       []string
@@ -267,10 +267,14 @@ func TestMySQL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			m := mockMux(ctx, dialect.MySQL, tt.mock, testSchema)
+			drv, err := m.OpenImport("mysql://root:pass@tcp(localhost:3308)/test?parseTime=True")
+			r.NoError(err)
+			importer, err := entimport.NewImport(
+				entimport.WithDriver(drv),
+			)
+			r.NoError(err)
 			schemas := createTempDir(t)
-			mock := &Inspector{}
-			mock.On("InspectSchema", ctx, testSchema, &schema.InspectOptions{}).Return(tt.mock, nil)
-			importer.Inspector = mock
 			mutations, err := importer.SchemaMutations(ctx)
 			r.NoError(err)
 			err = entimport.WriteSchema(mutations, entimport.WithSchemaPath(schemas))
@@ -299,15 +303,17 @@ func TestMySQL(t *testing.T) {
 }
 
 func TestMySQLJoinTableOnly(t *testing.T) {
-	ctx := context.Background()
-	i := &entimport.ImportOptions{}
-	entimport.WithDSN("root:pass@tcp(localhost:3308)/test?parseTime=True")(i)
-	importer := &entimport.MySQL{
-		Options: i,
-	}
-	mock := &Inspector{}
-	mock.On("InspectSchema", ctx, "test", &schema.InspectOptions{}).Return(MockMySQLM2MJoinTableOnly(), nil)
-	importer.Inspector = mock
+	var (
+		testSchema = "test"
+		ctx        = context.Background()
+	)
+	m := mockMux(ctx, dialect.MySQL, MockMySQLM2MJoinTableOnly(), testSchema)
+	drv, err := m.OpenImport("mysql://root:pass@tcp(localhost:3308)/test?parseTime=True")
+	require.NoError(t, err)
+	importer, err := entimport.NewImport(
+		entimport.WithDriver(drv),
+	)
+	require.NoError(t, err)
 	mutations, err := importer.SchemaMutations(ctx)
 	require.Empty(t, mutations)
 	require.EqualError(t, err, "entimport: join tables must be inspected with ref tables - append `tables` flag")

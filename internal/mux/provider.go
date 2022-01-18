@@ -12,8 +12,8 @@ import (
 )
 
 func init() {
-	DefaultMux.RegisterProvider(mysqlProvider, "mysql")
-	DefaultMux.RegisterProvider(postgresProvider, "postgres", "postgresql")
+	Default.RegisterProvider(mysqlProvider, "mysql")
+	Default.RegisterProvider(postgresProvider, "postgres", "postgresql")
 }
 
 func mysqlProvider(dsn string) (*ImportDriver, error) {

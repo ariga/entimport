@@ -31,7 +31,7 @@ func main() {
 		os.Exit(2)
 	}
 	ctx := context.Background()
-	drv, err := mux.DefaultMux.OpenImport(*dsn)
+	drv, err := mux.Default.OpenImport(*dsn)
 	if err != nil {
 		log.Fatalf("entimport: failed to create import driver - %v", err)
 	}

@@ -7,8 +7,6 @@ import (
 	"ariga.io/atlas/sql/schema"
 )
 
-var DefaultMux = New()
-
 type (
 	// importProvider - returns an ImportDriver for a given dialect.
 	importProvider func(string) (*ImportDriver, error)
@@ -32,6 +30,8 @@ func New() *Mux {
 		providers: make(map[string]importProvider),
 	}
 }
+
+var Default = New()
 
 // RegisterProvider is used to register an Atlas provider by key.
 func (u *Mux) RegisterProvider(p importProvider, scheme ...string) {

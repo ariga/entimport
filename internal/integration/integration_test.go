@@ -32,7 +32,7 @@ func TestMySQL(t *testing.T) {
 	r.NoError(err)
 	defer db.Close()
 	r.NoError(db.Ping())
-	drv, err := mux.DefaultMux.OpenImport("mysql://" + dsn)
+	drv, err := mux.Default.OpenImport("mysql://" + dsn)
 	r.NoError(err)
 	si, err := entimport.NewImport(
 		entimport.WithDriver(drv),
@@ -575,7 +575,7 @@ func TestPostgres(t *testing.T) {
 	r.NoError(err)
 	defer db.Close()
 	r.NoError(db.Ping())
-	drv, err := mux.DefaultMux.OpenImport(dsn)
+	drv, err := mux.Default.OpenImport(dsn)
 	r.NoError(err)
 	si, err := entimport.NewImport(
 		entimport.WithDriver(drv),

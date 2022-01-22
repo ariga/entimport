@@ -26,7 +26,7 @@ var joinTableErr = errors.New("entimport: join tables must be inspected with ref
 type (
 	edgeDir int
 
-	// relOptions are the options passed down to the functions that create a relation.
+	// relOptions are the options passed down to the functions that creates a relation.
 	relOptions struct {
 		uniqueEdgeToChild    bool
 		recursive            bool
@@ -121,28 +121,27 @@ func WriteSchema(mutations []schemast.Mutator, opts ...ImportOption) error {
 
 // entEdge creates an edge based on the given params and direction.
 func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir edgeDir, opts relOptions) (e ent.Edge) {
+	var desc *edge.Descriptor
 	switch dir {
 	case to:
 		e = edge.To(nodeName, ent.Schema.Type)
+		desc = e.Descriptor()
 		if opts.uniqueEdgeToChild {
-			e.Descriptor().Unique = true
-			e.Descriptor().Name = inflect.Singularize(nodeName)
+			desc.Unique = true
+			desc.Name = inflect.Singularize(nodeName)
 		}
 		if opts.recursive {
-			e.Descriptor().Name = "child_" + e.Descriptor().Name
+			desc.Name = "child_" + desc.Name
 		}
 	case from:
 		e = edge.From(nodeName, ent.Schema.Type)
+		desc = e.Descriptor()
 		if opts.uniqueEdgeFromParent {
-			e.Descriptor().Unique = true
-			e.Descriptor().Name = inflect.Singularize(nodeName)
+			desc.Unique = true
+			desc.Name = inflect.Singularize(nodeName)
 		}
 		if opts.edgeField != "" {
 			setEdgeField(e, opts, currentNode)
-		}
-		if opts.recursive {
-			e.Descriptor().Name = "parent_" + e.Descriptor().Name
-			break
 		}
 		// RefName describes which entEdge of the Parent Node we're referencing
 		// because there can be multiple references from one node to another.
@@ -150,9 +149,13 @@ func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir 
 		if opts.uniqueEdgeToChild {
 			refName = inflect.Singularize(refName)
 		}
-		e.Descriptor().RefName = refName
+		desc.RefName = refName
+		if opts.recursive {
+			desc.Name = "parent_" + desc.Name
+			desc.RefName = "child_" + desc.RefName
+		}
 	}
-	e.Descriptor().Type = nodeType
+	desc.Type = nodeType
 	return e
 }
 
@@ -175,7 +178,6 @@ func setEdgeField(e ent.Edge, opts relOptions, childNode *schemast.UpsertSchema)
 func upsertRelation(nodeA *schemast.UpsertSchema, nodeB *schemast.UpsertSchema, opts relOptions) {
 	tableA := tableName(nodeA.Name)
 	tableB := tableName(nodeB.Name)
-	opts.refName = tableB
 	fromA := entEdge(tableA, nodeA.Name, nodeB, from, opts)
 	toB := entEdge(tableB, nodeB.Name, nodeA, to, opts)
 	nodeA.Edges = append(nodeA.Edges, toB)
@@ -198,6 +200,7 @@ func upsertManyToMany(mutations map[string]schemast.Mutator, table *schema.Table
 	if !ok {
 		return joinTableErr
 	}
+	opts.refName = tableName(nodeB.Name)
 	upsertRelation(nodeA, nodeB, opts)
 	return nil
 }
@@ -360,7 +363,7 @@ func upsertOneToX(mutations map[string]schemast.Mutator, table *schema.Table) {
 		colName := fk.Columns[0].Name
 		opts := relOptions{
 			uniqueEdgeFromParent: true,
-			refName:              child.Name,
+			refName:              tableName(child.Name),
 			edgeField:            colName,
 		}
 		if child.Name == parent.Name {

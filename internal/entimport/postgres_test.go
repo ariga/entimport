@@ -144,7 +144,7 @@ func TestPostgres(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type).Ref("child_users")}
 }`,
 			},
 			entities: []string{"user"},
@@ -159,7 +159,7 @@ func TestPostgres(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type).Ref("child_users")}
 }`,
 			},
 			entities: []string{"user"},
@@ -195,7 +195,7 @@ func TestPostgres(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				"node": `func (Node) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Unique().Field("node_next")}
+	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Ref("child_node").Unique().Field("node_next")}
 }`,
 			},
 			entities: []string{"node"},
@@ -210,7 +210,7 @@ func TestPostgres(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Unique().Field("user_spouse")}
+	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Ref("child_user").Unique().Field("user_spouse")}
 }`,
 			},
 			entities: []string{"user"},
@@ -246,7 +246,7 @@ func TestPostgres(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				"node": `func (Node) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_nodes", Node.Type), edge.From("parent_node", Node.Type).Unique().Field("node_children")}
+	return []ent.Edge{edge.To("child_nodes", Node.Type), edge.From("parent_node", Node.Type).Ref("child_nodes").Unique().Field("node_children")}
 }`,
 			},
 			entities: []string{"node"},

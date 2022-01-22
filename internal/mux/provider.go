@@ -31,6 +31,7 @@ func mysqlProvider(dsn string) (*ImportDriver, error) {
 		return nil, err
 	}
 	return &ImportDriver{
+		Closer:     db,
 		Inspector:  drv,
 		Dialect:    dialect.MySQL,
 		SchemaName: cfg.DBName,
@@ -57,6 +58,7 @@ func postgresProvider(dsn string) (*ImportDriver, error) {
 		schemaName = s
 	}
 	return &ImportDriver{
+		Closer:     db,
 		Inspector:  drv,
 		Dialect:    dialect.Postgres,
 		SchemaName: schemaName,

@@ -2,6 +2,7 @@ package mux
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"ariga.io/atlas/sql/schema"
@@ -18,6 +19,7 @@ type (
 
 	// ImportDriver implements Inspector interface and holds inspection information.
 	ImportDriver struct {
+		io.Closer
 		schema.Inspector
 		Dialect    string
 		SchemaName string

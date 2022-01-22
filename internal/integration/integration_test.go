@@ -34,6 +34,7 @@ func TestMySQL(t *testing.T) {
 	r.NoError(db.Ping())
 	drv, err := mux.Default.OpenImport("mysql://" + dsn)
 	r.NoError(err)
+	defer drv.Close()
 	si, err := entimport.NewImport(
 		entimport.WithDriver(drv),
 	)
@@ -265,7 +266,7 @@ create table nodes
 			},
 			expectedEdges: map[string]string{
 				"node": `func (Node) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Unique().Field("node_next")}
+	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Ref("child_node").Unique().Field("node_next")}
 }`,
 			},
 			entities: []string{"node"},
@@ -292,7 +293,7 @@ create table users
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Unique().Field("user_spouse")}
+	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Ref("child_user").Unique().Field("user_spouse")}
 }`,
 			},
 			entities: []string{"user"},
@@ -355,7 +356,7 @@ create table users
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_user", User.Type).Unique().Field("user_parent")}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_user", User.Type).Ref("child_users").Unique().Field("user_parent")}
 }`,
 			},
 			entities: []string{"user"},
@@ -388,7 +389,7 @@ create table user_friends
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type).Ref("child_users")}
 }`,
 			},
 			entities: []string{"user"},
@@ -419,7 +420,7 @@ create table user_following
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type).Ref("child_users")}
 }`,
 			},
 			entities: []string{"user"},
@@ -577,6 +578,7 @@ func TestPostgres(t *testing.T) {
 	r.NoError(db.Ping())
 	drv, err := mux.Default.OpenImport(dsn)
 	r.NoError(err)
+	defer drv.Close()
 	si, err := entimport.NewImport(
 		entimport.WithDriver(drv),
 	)
@@ -798,7 +800,7 @@ create table nodes
 			},
 			expectedEdges: map[string]string{
 				"node": `func (Node) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Unique().Field("node_next")}
+	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Ref("child_node").Unique().Field("node_next")}
 }`,
 			},
 		},
@@ -829,7 +831,7 @@ create table users
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Unique().Field("user_spouse")}
+	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Ref("child_user").Unique().Field("user_spouse")}
 }`,
 			},
 		},
@@ -901,7 +903,7 @@ create table users
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_user", User.Type).Unique().Field("user_parent")}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_user", User.Type).Ref("child_users").Unique().Field("user_parent")}
 }`,
 			},
 		},
@@ -940,7 +942,7 @@ create table user_friends
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type).Ref("child_users")}
 }`,
 			},
 		},
@@ -979,7 +981,7 @@ create table user_following
 			},
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
-	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type).Ref("child_users")}
 }`,
 			},
 		},

@@ -10,6 +10,8 @@ import (
 
 	"entgo.io/contrib/schemast"
 	"entgo.io/ent"
+	entschema "entgo.io/ent/schema"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"github.com/go-openapi/inflect"
@@ -316,6 +318,7 @@ func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutato
 		if err != nil {
 			return nil, err
 		}
+		node.Annotations = []entschema.Annotation{entsql.Annotation{Table: table.Name}}
 		mutations[table.Name] = node
 	}
 	for _, table := range tables {

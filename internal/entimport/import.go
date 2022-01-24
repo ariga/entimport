@@ -48,9 +48,10 @@ type (
 
 	// ImportOptions are the options passed on to every SchemaImporter.
 	ImportOptions struct {
-		tables     []string
-		schemaPath string
-		driver     *mux.ImportDriver
+		annotations []string
+		tables      []string
+		schemaPath  string
+		driver      *mux.ImportDriver
 	}
 
 	// ImportOption allows for managing import configuration using functional options.
@@ -68,6 +69,13 @@ func WithSchemaPath(path string) ImportOption {
 func WithTables(tables []string) ImportOption {
 	return func(i *ImportOptions) {
 		i.tables = tables
+	}
+}
+
+// WithAnnotations Configure according to the incoming annotations
+func WithAnnotations(annotations []string) ImportOption {
+	return func(i *ImportOptions) {
+		i.annotations = annotations
 	}
 }
 
@@ -306,7 +314,7 @@ func applyColumnAttributes(f ent.Field, col *schema.Column) {
 }
 
 // schemaMutations is in charge of creating all the schema mutations needed for an ent schema.
-func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutator, error) {
+func schemaMutations(field fieldFunc, tables []*schema.Table,annotations []string) ([]schemast.Mutator, error) {
 	mutations := make(map[string]schemast.Mutator)
 	joinTables := make(map[string]*schema.Table)
 	for _, table := range tables {
@@ -318,7 +326,13 @@ func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutato
 		if err != nil {
 			return nil, err
 		}
-		node.Annotations = []entschema.Annotation{entsql.Annotation{Table: table.Name}}
+		if len(annotations)>0 {
+			for _,annot := range annotations {
+				if annot == "Table" {
+					node.Annotations = []entschema.Annotation{entsql.Annotation{Table: table.Name}}
+				}
+			}
+		}
 		mutations[table.Name] = node
 	}
 	for _, table := range tables {

@@ -23,6 +23,7 @@ const (
 // MySQL holds the schema import options and an Atlas inspector instance
 type MySQL struct {
 	*ImportOptions
+	Annotations []string
 }
 
 // NewMySQL - create aמ import structure for MySQL.
@@ -41,7 +42,7 @@ func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error)
 	if err != nil {
 		return nil, err
 	}
-	return schemaMutations(m.field, s.Tables)
+	return schemaMutations(m.field, s.Tables, m.ImportOptions.annotations)
 }
 
 func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {

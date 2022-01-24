@@ -23,7 +23,6 @@ const (
 // MySQL holds the schema import options and an Atlas inspector instance
 type MySQL struct {
 	*ImportOptions
-	Annotations []string
 }
 
 // NewMySQL - create aמ import structure for MySQL.

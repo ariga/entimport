@@ -326,11 +326,18 @@ func schemaMutations(field fieldFunc, tables []*schema.Table,annotations []strin
 		if err != nil {
 			return nil, err
 		}
-		if len(annotations)>0 {
+
+		if len(annotations) > 0 {
+			annotationsConfig := entsql.Annotation{}
+			configCount := 0
 			for _,annot := range annotations {
 				if annot == "Table" {
-					node.Annotations = []entschema.Annotation{entsql.Annotation{Table: table.Name}}
+					annotationsConfig.Table = table.Name
+					configCount++
 				}
+			}
+			if configCount > 0 {
+				node.Annotations = []entschema.Annotation{annotationsConfig}
 			}
 		}
 		mutations[table.Name] = node

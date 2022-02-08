@@ -37,7 +37,7 @@ func (p *Postgres) SchemaMutations(ctx context.Context) ([]schemast.Mutator, err
 	if err != nil {
 		return nil, err
 	}
-	return schemaMutations(p.field, s.Tables, p.ImportOptions.annotations)
+	return schemaMutations(p.field, s.Tables)
 }
 
 func (p *Postgres) field(column *schema.Column) (f ent.Field, err error) {

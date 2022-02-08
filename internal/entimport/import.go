@@ -48,7 +48,6 @@ type (
 
 	// ImportOptions are the options passed on to every SchemaImporter.
 	ImportOptions struct {
-		annotations []string
 		tables      []string
 		schemaPath  string
 		driver      *mux.ImportDriver
@@ -69,13 +68,6 @@ func WithSchemaPath(path string) ImportOption {
 func WithTables(tables []string) ImportOption {
 	return func(i *ImportOptions) {
 		i.tables = tables
-	}
-}
-
-// WithAnnotations Configure according to the incoming annotations
-func WithAnnotations(annotations []string) ImportOption {
-	return func(i *ImportOptions) {
-		i.annotations = annotations
 	}
 }
 
@@ -257,10 +249,17 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 	upsert := &schemast.UpsertSchema{
 		Name: typeName(table.Name),
 	}
+	if tableName(table.Name) != table.Name {
+		annotationsConfig := entsql.Annotation{}
+		annotationsConfig.Table = table.Name
+		upsert.Annotations = []entschema.Annotation{annotationsConfig}
+	}
+
 	fields := make(map[string]ent.Field, len(upsert.Fields))
 	for _, f := range upsert.Fields {
 		fields[f.Descriptor().Name] = f
 	}
+
 	pk, err := resolvePrimaryKey(field, table)
 	if err != nil {
 		return nil, err
@@ -269,6 +268,7 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 		fields[pk.Descriptor().Name] = pk
 		upsert.Fields = append(upsert.Fields, pk)
 	}
+
 	for _, column := range table.Columns {
 		if table.PrimaryKey != nil &&
 			len(table.PrimaryKey.Parts) != 0 &&
@@ -314,7 +314,7 @@ func applyColumnAttributes(f ent.Field, col *schema.Column) {
 }
 
 // schemaMutations is in charge of creating all the schema mutations needed for an ent schema.
-func schemaMutations(field fieldFunc, tables []*schema.Table,annotations []string) ([]schemast.Mutator, error) {
+func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutator, error) {
 	mutations := make(map[string]schemast.Mutator)
 	joinTables := make(map[string]*schema.Table)
 	for _, table := range tables {
@@ -325,20 +325,6 @@ func schemaMutations(field fieldFunc, tables []*schema.Table,annotations []strin
 		node, err := upsertNode(field, table)
 		if err != nil {
 			return nil, err
-		}
-
-		if len(annotations) > 0 {
-			annotationsConfig := entsql.Annotation{}
-			configCount := 0
-			for _,annot := range annotations {
-				if annot == "Table" {
-					annotationsConfig.Table = table.Name
-					configCount++
-				}
-			}
-			if configCount > 0 {
-				node.Annotations = []entschema.Annotation{annotationsConfig}
-			}
 		}
 		mutations[table.Name] = node
 	}

@@ -41,7 +41,7 @@ func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error)
 	if err != nil {
 		return nil, err
 	}
-	return schemaMutations(m.field, s.Tables, m.ImportOptions.annotations)
+	return schemaMutations(m.field, s.Tables)
 }
 
 func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {

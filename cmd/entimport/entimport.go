@@ -13,11 +13,9 @@ import (
 )
 
 var tablesFlag tables
-var annotationsFlag annotations
 
 func init() {
 	flag.Var(&tablesFlag, "tables", "comma-separated list of tables to inspect (all if empty)")
-	flag.Var(&annotationsFlag, "annotations", "comma-separated list of annotations to inspect (empty if empty)")
 }
 
 func main() {
@@ -38,7 +36,6 @@ func main() {
 		log.Fatalf("entimport: failed to create import driver - %v", err)
 	}
 	i, err := entimport.NewImport(
-		entimport.WithAnnotations(annotationsFlag),
 		entimport.WithTables(tablesFlag),
 		entimport.WithDriver(drv),
 	)
@@ -61,17 +58,6 @@ func (t *tables) String() string {
 }
 
 func (t *tables) Set(s string) error {
-	*t = strings.Split(s, ",")
-	return nil
-}
-
-type annotations []string
-
-func (t *annotations) String() string {
-	return fmt.Sprint(*t)
-}
-
-func (t *annotations) Set(s string) error {
 	*t = strings.Split(s, ",")
 	return nil
 }

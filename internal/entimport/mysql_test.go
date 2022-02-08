@@ -29,8 +29,28 @@ func TestMySQL(t *testing.T) {
 		expectedFields map[string]string
 		mock           *schema.Schema
 		expectedEdges  map[string]string
+		expectedAnnotations  map[string]string
 	}{
 		{
+			name: "table_name_does_not_use_plural_form",
+			mock: MockMySQLTableNameDoesNotUsePluralForm(),
+			expectedFields: map[string]string{
+				"pet": `func (Pet) Fields() []ent.Field {
+	return []ent.Field{field.Int("id"), field.Int8("age"), field.String("name")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`pet`: `func (Pet) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`pet`: `func (Pet) Annotations() []schema.Annotation {
+	return []schema.Annotation{entsql.Annotation{Table: "pet"}}
+}`,
+			},
+			entities: []string{"pet"},
+		},{
 			name: "single_table_fields",
 			mock: MockMySQLSingleTableFields(),
 			expectedFields: map[string]string{
@@ -40,6 +60,11 @@ func TestMySQL(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
 	return nil
 }`,
 			},
@@ -58,6 +83,11 @@ func TestMySQL(t *testing.T) {
 	return nil
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"user"},
 		},
 		{
@@ -70,6 +100,11 @@ func TestMySQL(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
 	return nil
 }`,
 			},
@@ -94,6 +129,14 @@ func TestMySQL(t *testing.T) {
 	return nil
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
+}`,
+				`pet`: `func (Pet) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"user", "pet"},
 		},
 		{
@@ -106,6 +149,11 @@ func TestMySQL(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
 	return nil
 }`,
 			},
@@ -130,6 +178,14 @@ func TestMySQL(t *testing.T) {
 	return []ent.Edge{edge.To("users", User.Type)}
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
+}`,
+				`group`: `func (Group) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"user", "group"},
 		},
 		{
@@ -145,6 +201,11 @@ func TestMySQL(t *testing.T) {
 	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"user"},
 		},
 		{
@@ -158,6 +219,11 @@ func TestMySQL(t *testing.T) {
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_users", User.Type), edge.From("parent_users", User.Type)}
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
 }`,
 			},
 			entities: []string{"user"},
@@ -181,6 +247,14 @@ func TestMySQL(t *testing.T) {
 	return []ent.Edge{edge.From("user", User.Type).Ref("card").Unique().Field("user_card")}
 }`,
 			},
+			expectedAnnotations: map[string]string{
+			`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
+}`,
+			`card`: `func (Card) Annotations() []schema.Annotation {
+	return nil
+}`,
+		},
 			entities: []string{"user", "card"},
 		},
 		{
@@ -196,6 +270,11 @@ func TestMySQL(t *testing.T) {
 	return []ent.Edge{edge.To("child_node", Node.Type).Unique(), edge.From("parent_node", Node.Type).Unique().Field("node_next")}
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`node`: `func (Node) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"node"},
 		},
 		{
@@ -209,6 +288,11 @@ func TestMySQL(t *testing.T) {
 			expectedEdges: map[string]string{
 				"user": `func (User) Edges() []ent.Edge {
 	return []ent.Edge{edge.To("child_user", User.Type).Unique(), edge.From("parent_user", User.Type).Unique().Field("user_spouse")}
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
 }`,
 			},
 			entities: []string{"user"},
@@ -232,6 +316,14 @@ func TestMySQL(t *testing.T) {
 	return []ent.Edge{edge.From("user", User.Type).Ref("pets").Unique().Field("user_pets")}
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`user`: `func (User) Annotations() []schema.Annotation {
+	return nil
+}`,
+				`pet`: `func (Pet) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"user", "pet"},
 		},
 		{
@@ -247,6 +339,11 @@ func TestMySQL(t *testing.T) {
 	return []ent.Edge{edge.To("child_nodes", Node.Type), edge.From("parent_node", Node.Type).Unique().Field("node_children")}
 }`,
 			},
+			expectedAnnotations: map[string]string{
+				`node`: `func (Node) Annotations() []schema.Annotation {
+	return nil
+}`,
+			},
 			entities: []string{"node"},
 		},
 		{
@@ -259,6 +356,11 @@ func TestMySQL(t *testing.T) {
 			},
 			expectedEdges: map[string]string{
 				"pet": `func (Pet) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			expectedAnnotations: map[string]string{
+				`pet`: `func (Pet) Annotations() []schema.Annotation {
 	return nil
 }`,
 			},
@@ -291,12 +393,20 @@ func TestMySQL(t *testing.T) {
 				err = printer.Fprint(&actualFields, token.NewFileSet(), fieldMethod)
 				r.NoError(err)
 				r.EqualValues(tt.expectedFields[e], actualFields.String())
+
 				edgeMethod := lookupMethod(f, typeName, "Edges")
 				r.NotNil(edgeMethod)
 				var actualEdges bytes.Buffer
 				err = printer.Fprint(&actualEdges, token.NewFileSet(), edgeMethod)
 				r.NoError(err)
 				r.EqualValues(tt.expectedEdges[e], actualEdges.String())
+
+				annotationsMethod := lookupMethod(f, typeName, "Annotations")
+				r.NotNil(annotationsMethod)
+				var actualAnnotations bytes.Buffer
+				err = printer.Fprint(&actualAnnotations, token.NewFileSet(), annotationsMethod)
+				r.NoError(err)
+				r.EqualValues(tt.expectedAnnotations[e], actualAnnotations.String())
 			}
 		})
 	}

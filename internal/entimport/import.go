@@ -10,9 +10,9 @@ import (
 
 	"entgo.io/contrib/schemast"
 	"entgo.io/ent"
-	entschema "entgo.io/ent/schema"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	entschema "entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"github.com/go-openapi/inflect"
 )
@@ -48,9 +48,9 @@ type (
 
 	// ImportOptions are the options passed on to every SchemaImporter.
 	ImportOptions struct {
-		tables      []string
-		schemaPath  string
-		driver      *mux.ImportDriver
+		tables     []string
+		schemaPath string
+		driver     *mux.ImportDriver
 	}
 
 	// ImportOption allows for managing import configuration using functional options.
@@ -250,16 +250,14 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 		Name: typeName(table.Name),
 	}
 	if tableName(table.Name) != table.Name {
-		annotationsConfig := entsql.Annotation{}
-		annotationsConfig.Table = table.Name
-		upsert.Annotations = []entschema.Annotation{annotationsConfig}
+		upsert.Annotations = []entschema.Annotation{
+			entsql.Annotation{Table: table.Name},
+		}
 	}
-
 	fields := make(map[string]ent.Field, len(upsert.Fields))
 	for _, f := range upsert.Fields {
 		fields[f.Descriptor().Name] = f
 	}
-
 	pk, err := resolvePrimaryKey(field, table)
 	if err != nil {
 		return nil, err
@@ -268,7 +266,6 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 		fields[pk.Descriptor().Name] = pk
 		upsert.Fields = append(upsert.Fields, pk)
 	}
-
 	for _, column := range table.Columns {
 		if table.PrimaryKey != nil &&
 			len(table.PrimaryKey.Parts) != 0 &&

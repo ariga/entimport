@@ -24,12 +24,12 @@ func TestMySQL(t *testing.T) {
 		testSchema = "test"
 	)
 	tests := []struct {
-		name           string
-		entities       []string
-		expectedFields map[string]string
-		mock           *schema.Schema
-		expectedEdges  map[string]string
-		expectedAnnotations  map[string]string
+		name                string
+		entities            []string
+		expectedFields      map[string]string
+		mock                *schema.Schema
+		expectedEdges       map[string]string
+		expectedAnnotations map[string]string
 	}{
 		{
 			name: "table_name_does_not_use_plural_form",
@@ -50,7 +50,7 @@ func TestMySQL(t *testing.T) {
 }`,
 			},
 			entities: []string{"pet"},
-		},{
+		}, {
 			name: "single_table_fields",
 			mock: MockMySQLSingleTableFields(),
 			expectedFields: map[string]string{
@@ -248,13 +248,13 @@ func TestMySQL(t *testing.T) {
 }`,
 			},
 			expectedAnnotations: map[string]string{
-			`user`: `func (User) Annotations() []schema.Annotation {
+				`user`: `func (User) Annotations() []schema.Annotation {
 	return nil
 }`,
-			`card`: `func (Card) Annotations() []schema.Annotation {
+				`card`: `func (Card) Annotations() []schema.Annotation {
 	return nil
 }`,
-		},
+			},
 			entities: []string{"user", "card"},
 		},
 		{

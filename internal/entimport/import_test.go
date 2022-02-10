@@ -17,6 +17,84 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func MockMySQLTableNameDoesNotUsePluralForm() *schema.Schema {
+	table := &schema.Table{
+		Name: "pet",
+		Columns: []*schema.Column{
+			{
+				Name: "age",
+				Type: &schema.ColumnType{
+					Type: &schema.IntegerType{
+						T:        "tinyint",
+						Unsigned: false,
+					},
+					Raw:  "tinyint",
+					Null: false,
+				},
+			},
+			{
+				Name: "id",
+				Type: &schema.ColumnType{
+					Type: &schema.IntegerType{
+						T:        "bigint",
+						Unsigned: false,
+					},
+					Raw:  "bigint",
+					Null: false,
+				},
+				Attrs: []schema.Attr{
+					&mysql.AutoIncrement{
+						V: 0,
+					},
+				},
+			},
+			{
+				Name: "name",
+				Type: &schema.ColumnType{
+					Type: &schema.StringType{T: "varchar", Size: 255},
+					Raw:  "varchar(255)",
+					Null: false,
+				},
+				Default: &schema.RawExpr{X: "unknown"},
+				Attrs: []schema.Attr{
+					&schema.Charset{V: "utf8mb4"},
+					&schema.Collation{V: "utf8mb4_bin"},
+				},
+			},
+		},
+	}
+	primaryKey := &schema.Index{
+		Name:   "PRI",
+		Unique: false,
+		Parts: []*schema.IndexPart{
+			{
+				SeqNo: 0,
+				C: &schema.Column{
+					Name: "id",
+					Type: &schema.ColumnType{
+						Type: &schema.IntegerType{
+							T:        "bigint",
+							Unsigned: false,
+						},
+						Raw:  "bigint",
+						Null: false,
+					},
+					Attrs: []schema.Attr{
+						&mysql.AutoIncrement{
+							V: 0,
+						},
+					},
+				},
+			},
+		},
+	}
+	table.PrimaryKey = primaryKey
+	return &schema.Schema{
+		Name:   "test",
+		Tables: []*schema.Table{table},
+	}
+}
+
 func MockMySQLSingleTableFields() *schema.Schema {
 	table := &schema.Table{
 		Name: "users",

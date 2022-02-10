@@ -11,6 +11,8 @@ import (
 	"entgo.io/contrib/schemast"
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	entschema "entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"github.com/go-openapi/inflect"
 )
@@ -249,6 +251,11 @@ func resolvePrimaryKey(field fieldFunc, table *schema.Table) (f ent.Field, err e
 func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, error) {
 	upsert := &schemast.UpsertSchema{
 		Name: typeName(table.Name),
+	}
+	if tableName(table.Name) != table.Name {
+		upsert.Annotations = []entschema.Annotation{
+			entsql.Annotation{Table: table.Name},
+		}
 	}
 	fields := make(map[string]ent.Field, len(upsert.Fields))
 	for _, f := range upsert.Fields {

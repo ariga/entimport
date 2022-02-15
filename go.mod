@@ -3,9 +3,9 @@ module ariga.io/entimport
 go 1.17
 
 require (
-	ariga.io/atlas v0.3.2-0.20220121060900-982e634fa853
-	entgo.io/contrib v0.2.1-0.20220119211230-99e4837d54e2
-	entgo.io/ent v0.10.0
+	ariga.io/atlas v0.3.5-0.20220214081550-9c2010f37ebc
+	entgo.io/contrib v0.2.1-0.20220214145710-4b15fea7816e
+	entgo.io/ent v0.10.1-0.20220210141757-a7beb5c834f0
 	github.com/go-openapi/inflect v0.19.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.3.0

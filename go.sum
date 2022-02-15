@@ -1,6 +1,6 @@
-ariga.io/atlas v0.3.2-0.20220120225051-c3fac7d636dd/go.mod h1:XcLUpQX7Cq4qtagEHIleq3MJaBeeJ76BS8doc4gkOJk=
-ariga.io/atlas v0.3.2-0.20220121060900-982e634fa853 h1:xAakKXqkPHPUIZhUNyKeJNPcKYF9bHofRIcu0rtsgbI=
-ariga.io/atlas v0.3.2-0.20220121060900-982e634fa853/go.mod h1:XcLUpQX7Cq4qtagEHIleq3MJaBeeJ76BS8doc4gkOJk=
+ariga.io/atlas v0.3.4-0.20220209093922-b6680bb15369/go.mod h1:XcLUpQX7Cq4qtagEHIleq3MJaBeeJ76BS8doc4gkOJk=
+ariga.io/atlas v0.3.5-0.20220214081550-9c2010f37ebc h1:XCo9dPLT8vcDwgQ1dv9fiamkJyzNomyONbgYfKFPHO0=
+ariga.io/atlas v0.3.5-0.20220214081550-9c2010f37ebc/go.mod h1:XcLUpQX7Cq4qtagEHIleq3MJaBeeJ76BS8doc4gkOJk=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
@@ -50,11 +50,11 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-entgo.io/contrib v0.2.1-0.20220119211230-99e4837d54e2 h1:UFB8sJ1tVFzeOdp8Q2BjSwtmvYCc4695ywMxL3SbY0E=
-entgo.io/contrib v0.2.1-0.20220119211230-99e4837d54e2/go.mod h1:oDXgxZMWGHZAQcuty41ndZahRrGKFmZHiSaV7YDjhvM=
+entgo.io/contrib v0.2.1-0.20220214145710-4b15fea7816e h1:COlHDkYEDzbLtZt4do2YmcQhhp0tw3dyonY1HZzxbsg=
+entgo.io/contrib v0.2.1-0.20220214145710-4b15fea7816e/go.mod h1:oDXgxZMWGHZAQcuty41ndZahRrGKFmZHiSaV7YDjhvM=
 entgo.io/ent v0.9.2-0.20211220092907-4d01a56b8de7/go.mod h1:9jjnWS3pUqkDkRXYHkMU3nZlrj9enQJgIeImJyCm0sc=
-entgo.io/ent v0.10.0 h1:9cBomE1fh+WX34DPYQL7tDNAIvhKa3tXvwxuLyhYCMo=
-entgo.io/ent v0.10.0/go.mod h1:5bjIYdTizykmdtPY3knXrrGpxAh0cMjFfxdNnlNiUGU=
+entgo.io/ent v0.10.1-0.20220210141757-a7beb5c834f0 h1:N/WKNehF44oag5ztRqI/aTt+5mT2rjUtXQwdrMnGSIE=
+entgo.io/ent v0.10.1-0.20220210141757-a7beb5c834f0/go.mod h1:XOrvh898rRR6Obj7Kuo7Dxfbg+EyFxAfq8oG782h7Fw=
 github.com/99designs/gqlgen v0.15.2-0.20220119135911-986650718267/go.mod h1:nbeSjFkqphIqpZsYe1ULVz0yfH8hjpJdJIQoX/e0G2I=
 github.com/AlekSi/pointer v1.1.0/go.mod h1:y7BvfRI3wXPWKXEBhU71nbnIEEZX0QTSB2Bj48UJIZE=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

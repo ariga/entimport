@@ -1937,8 +1937,6 @@ func MockPostgresSingleTableFields() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2022,8 +2020,6 @@ func MockPostgresTableFieldsWithAttributes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2113,8 +2109,6 @@ func MockPostgresTableFieldsWithUniqueIndexes() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -2188,8 +2182,6 @@ func MockPostgresMultiTableFields() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -2212,8 +2204,6 @@ func MockPostgresMultiTableFields() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2315,8 +2305,6 @@ func MockPostgresNonDefaultPrimaryKey() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -2334,8 +2322,6 @@ func MockPostgresNonDefaultPrimaryKey() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -2359,8 +2345,6 @@ func MockPostgresNonDefaultPrimaryKey() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2422,8 +2406,6 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2489,8 +2471,6 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2565,8 +2545,6 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2577,8 +2555,6 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 				SeqNo: 2,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2651,8 +2627,6 @@ func MockPostgresM2MSameType() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2705,8 +2679,6 @@ func MockPostgresM2MSameType() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2717,8 +2689,6 @@ func MockPostgresM2MSameType() *schema.Schema {
 				SeqNo: 2,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2813,8 +2783,6 @@ func MockPostgresM2MBidirectional() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2880,8 +2848,6 @@ func MockPostgresM2MBidirectional() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2892,8 +2858,6 @@ func MockPostgresM2MBidirectional() *schema.Schema {
 				SeqNo: 2,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -2988,8 +2952,6 @@ func MockPostgresO2OTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3063,8 +3025,6 @@ func MockPostgresO2OTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3101,8 +3061,6 @@ func MockPostgresO2OTwoTypes() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -3182,8 +3140,6 @@ func MockPostgresO2OSameType() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3222,8 +3178,6 @@ func MockPostgresO2OSameType() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -3310,8 +3264,6 @@ func MockPostgresO2OBidirectional() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3350,8 +3302,6 @@ func MockPostgresO2OBidirectional() *schema.Schema {
 					SeqNo: 1,
 					Attrs: []schema.Attr{
 						&postgres.IndexColumnProperty{
-							Asc:        true,
-							Desc:       false,
 							NullsFirst: false,
 							NullsLast:  true,
 						},
@@ -3427,8 +3377,6 @@ func MockPostgresO2MTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3494,8 +3442,6 @@ func MockPostgresO2MTwoTypes() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3583,8 +3529,6 @@ func MockPostgresO2MSameType() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3669,8 +3613,6 @@ func MockPostgresO2XOtherSideIgnored() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3736,8 +3678,6 @@ func MockPostgresO2XOtherSideIgnored() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3811,8 +3751,6 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3878,8 +3816,6 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3954,8 +3890,6 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 				SeqNo: 1,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3966,8 +3900,6 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 				SeqNo: 2,
 				Attrs: []schema.Attr{
 					&postgres.IndexColumnProperty{
-						Asc:        true,
-						Desc:       false,
 						NullsFirst: false,
 						NullsLast:  true,
 					},
@@ -3987,11 +3919,11 @@ type inspectorMock struct {
 	mock.Mock
 }
 
-func (_m *inspectorMock) InspectTable(ctx context.Context, name string, opts *schema.InspectTableOptions) (*schema.Table, error) {
+func (_m *inspectorMock) InspectTable(_ context.Context, _ string, _ *schema.InspectTableOptions) (*schema.Table, error) {
 	return nil, nil
 }
 
-func (_m *inspectorMock) InspectRealm(ctx context.Context, opts *schema.InspectRealmOption) (*schema.Realm, error) {
+func (_m *inspectorMock) InspectRealm(_ context.Context, _ *schema.InspectRealmOption) (*schema.Realm, error) {
 	return nil, nil
 }
 

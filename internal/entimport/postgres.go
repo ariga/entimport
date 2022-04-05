@@ -77,10 +77,10 @@ func (p *Postgres) field(column *schema.Column) (f ent.Field, err error) {
 // real - 4 bytes variable-precision, inexact 6 decimal digits precision.
 // double -	8 bytes	variable-precision, inexact	15 decimal digits precision.
 func (p *Postgres) convertFloat(typ *schema.FloatType, name string) (f ent.Field) {
-	if typ.Precision > 14 {
-		return field.Float(name)
+	if typ.T == postgres.TypeReal {
+		return field.Float32(name)
 	}
-	return field.Float32(name)
+	return field.Float(name)
 }
 
 func (p *Postgres) convertInteger(typ *schema.IntegerType, name string) (f ent.Field) {

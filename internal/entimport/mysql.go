@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"ariga.io/atlas/sql/mysql"
 	"ariga.io/atlas/sql/schema"
 
 	"entgo.io/contrib/schemast"
@@ -76,7 +77,7 @@ func (m *MySQL) convertFloat(typ *schema.FloatType, name string) (f ent.Field) {
 	// A precision from 0 to 23 results in a 4-byte single-precision FLOAT column.
 	// A precision from 24 to 53 results in an 8-byte double-precision DOUBLE column:
 	// https://dev.mysql.com/doc/refman/8.0/en/floating-point-types.html
-	if typ.Precision > 23 {
+	if typ.T == mysql.TypeDouble {
 		return field.Float(name)
 	}
 	return field.Float32(name)

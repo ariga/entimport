@@ -8,11 +8,14 @@ jobs:
   lintgo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Run Go linters
-        uses: golangci/golangci-lint-action@v2.5.2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v2
         with:
-          version: v1.42.1
+          go-version: 1.17
+      - name: Run Go linters
+        uses: golangci/golangci-lint-action@v3.1.0
+        with:
+          version: v1.45.2
           args: --verbose --enable whitespace,gocritic,goimports
   unit:
     runs-on: ubuntu-latest

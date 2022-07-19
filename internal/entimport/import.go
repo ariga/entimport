@@ -48,9 +48,10 @@ type (
 
 	// ImportOptions are the options passed on to every SchemaImporter.
 	ImportOptions struct {
-		tables     []string
-		schemaPath string
-		driver     *mux.ImportDriver
+		tables         []string
+		excludedTables []string
+		schemaPath     string
+		driver         *mux.ImportDriver
 	}
 
 	// ImportOption allows for managing import configuration using functional options.
@@ -68,6 +69,13 @@ func WithSchemaPath(path string) ImportOption {
 func WithTables(tables []string) ImportOption {
 	return func(i *ImportOptions) {
 		i.tables = tables
+	}
+}
+
+// WithExcludedTables supplies the set of tables to exclude.
+func WithExcludedTables(tables []string) ImportOption {
+	return func(i *ImportOptions) {
+		i.excludedTables = tables
 	}
 }
 
@@ -234,8 +242,11 @@ func tableName(typeName string) string {
 
 // resolvePrimaryKey returns the primary key as an ent field for a given table.
 func resolvePrimaryKey(field fieldFunc, table *schema.Table) (f ent.Field, err error) {
-	if table.PrimaryKey == nil || len(table.PrimaryKey.Parts) != 1 {
-		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present")
+	if table.PrimaryKey == nil {
+		return nil, fmt.Errorf("entimport: missing primary key (table: %v)", table.Name)
+	}
+	if len(table.PrimaryKey.Parts) != 1 {
+		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present (table: %v, got: %v parts)", table.Name, len(table.PrimaryKey.Parts))
 	}
 	if f, err = field(table.PrimaryKey.Parts[0].C); err != nil {
 		return nil, err
@@ -324,7 +335,7 @@ func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutato
 		}
 		node, err := upsertNode(field, table)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("issue with table %v: %w", table.Name, err)
 		}
 		mutations[table.Name] = node
 	}

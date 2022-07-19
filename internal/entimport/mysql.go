@@ -82,7 +82,7 @@ func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {
 	case *schema.TimeType:
 		f = field.Time(name)
 	default:
-		return nil, fmt.Errorf("column %v: unsupported type %q", column.Name, typ)
+		return nil, fmt.Errorf("entimport: unsupported type %q for column %v", typ, column.Name)
 	}
 	applyColumnAttributes(f, column)
 	return f, err

@@ -53,7 +53,6 @@ func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error)
 		for _, t := range s.Tables {
 			if !excludedTableNames[t.Name] {
 				tables = append(tables, t)
-			} else {
 			}
 		}
 	}

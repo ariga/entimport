@@ -246,7 +246,7 @@ func resolvePrimaryKey(field fieldFunc, table *schema.Table) (f ent.Field, err e
 		return nil, fmt.Errorf("entimport: missing primary key (table: %v)", table.Name)
 	}
 	if len(table.PrimaryKey.Parts) != 1 {
-		return nil, fmt.Errorf("entimport: invalid primary key - single part key must be present (table: %v, got: %v parts)", table.Name, len(table.PrimaryKey.Parts))
+		return nil, fmt.Errorf("entimport: invalid primary key, single part key must be present (table: %v, got: %v parts)", table.Name, len(table.PrimaryKey.Parts))
 	}
 	if f, err = field(table.PrimaryKey.Parts[0].C); err != nil {
 		return nil, err

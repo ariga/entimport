@@ -42,8 +42,9 @@ func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error)
 	if err != nil {
 		return nil, err
 	}
-	var tables []*schema.Table
+	tables := s.Tables
 	if m.excludedTables != nil {
+		tables = nil
 		excludedTableNames := make(map[string]bool)
 		for _, t := range m.excludedTables {
 			excludedTableNames[t] = true

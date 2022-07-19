@@ -12,10 +12,14 @@ import (
 	"ariga.io/entimport/internal/mux"
 )
 
-var tablesFlag tables
+var (
+	tablesFlag        tables
+	excludeTablesFlag tables
+)
 
 func init() {
 	flag.Var(&tablesFlag, "tables", "comma-separated list of tables to inspect (all if empty)")
+	flag.Var(&excludeTablesFlag, "exclude-tables", "comma-separated list of tables to exclude")
 }
 
 func main() {
@@ -37,6 +41,7 @@ func main() {
 	}
 	i, err := entimport.NewImport(
 		entimport.WithTables(tablesFlag),
+		entimport.WithExcludedTables(excludeTablesFlag),
 		entimport.WithDriver(drv),
 	)
 	if err != nil {

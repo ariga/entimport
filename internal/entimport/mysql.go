@@ -42,7 +42,21 @@ func (m *MySQL) SchemaMutations(ctx context.Context) ([]schemast.Mutator, error)
 	if err != nil {
 		return nil, err
 	}
-	return schemaMutations(m.field, s.Tables)
+	tables := s.Tables
+	if m.excludedTables != nil {
+		tables = nil
+		excludedTableNames := make(map[string]bool)
+		for _, t := range m.excludedTables {
+			excludedTableNames[t] = true
+		}
+		// filter out tables that are in excludedTables:
+		for _, t := range s.Tables {
+			if !excludedTableNames[t.Name] {
+				tables = append(tables, t)
+			}
+		}
+	}
+	return schemaMutations(m.field, tables)
 }
 
 func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {
@@ -67,7 +81,7 @@ func (m *MySQL) field(column *schema.Column) (f ent.Field, err error) {
 	case *schema.TimeType:
 		f = field.Time(name)
 	default:
-		return nil, fmt.Errorf("entimport: unsupported type %q", typ)
+		return nil, fmt.Errorf("entimport: unsupported type %q for column %v", typ, column.Name)
 	}
 	applyColumnAttributes(f, column)
 	return f, err

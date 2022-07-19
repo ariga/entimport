@@ -37,7 +37,21 @@ func (p *Postgres) SchemaMutations(ctx context.Context) ([]schemast.Mutator, err
 	if err != nil {
 		return nil, err
 	}
-	return schemaMutations(p.field, s.Tables)
+	tables := s.Tables
+	if p.excludedTables != nil {
+		tables = nil
+		excludedTableNames := make(map[string]bool)
+		for _, t := range p.excludedTables {
+			excludedTableNames[t] = true
+		}
+		// filter out tables that are in excludedTables:
+		for _, t := range s.Tables {
+			if !excludedTableNames[t.Name] {
+				tables = append(tables, t)
+			}
+		}
+	}
+	return schemaMutations(p.field, tables)
 }
 
 func (p *Postgres) field(column *schema.Column) (f ent.Field, err error) {
@@ -66,7 +80,7 @@ func (p *Postgres) field(column *schema.Column) (f ent.Field, err error) {
 	case *postgres.UUIDType:
 		f = field.UUID(name, uuid.New())
 	default:
-		return nil, fmt.Errorf("entimport: unsupported type %q", typ)
+		return nil, fmt.Errorf("entimport: unsupported type %q for column %v", typ, column.Name)
 	}
 	applyColumnAttributes(f, column)
 	return f, err

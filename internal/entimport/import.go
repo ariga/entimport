@@ -335,7 +335,7 @@ func schemaMutations(field fieldFunc, tables []*schema.Table) ([]schemast.Mutato
 		}
 		node, err := upsertNode(field, table)
 		if err != nil {
-			return nil, fmt.Errorf("issue with table %v: %w", table.Name, err)
+			return nil, fmt.Errorf("entimport: issue with table %v: %w", table.Name, err)
 		}
 		mutations[table.Name] = node
 	}

@@ -270,14 +270,14 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 	}
 	fields := make(map[string]ent.Field, len(upsert.Fields))
 	for _, f := range upsert.Fields {
-		fields[f.Descriptor().Name] = f
+		fields[f.Descriptor().StorageKey] = f
 	}
 	pk, err := resolvePrimaryKey(field, table)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := fields[pk.Descriptor().Name]; !ok {
-		fields[pk.Descriptor().Name] = pk
+	if _, ok := fields[pk.Descriptor().StorageKey]; !ok {
+		fields[pk.Descriptor().StorageKey] = pk
 		upsert.Fields = append(upsert.Fields, pk)
 	}
 	for _, column := range table.Columns {
@@ -297,12 +297,7 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 	}
 	for _, index := range table.Indexes {
 		if index.Unique && len(index.Parts) == 1 {
-			col := index.Parts[0].C.Name
-			if desc := pk.Descriptor(); col == desc.StorageKey {
-				desc.Unique = true
-			} else {
-				fields[col].Descriptor().Unique = true
-			}
+			fields[index.Parts[0].C.Name].Descriptor().Unique = true
 		}
 	}
 	for _, fk := range table.ForeignKeys {

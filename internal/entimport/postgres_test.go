@@ -114,6 +114,21 @@ func TestPostgres(t *testing.T) {
 			entities: []string{"user"},
 		},
 		{
+			name: "non_default_primary_key_with_indexes",
+			mock: MockPostgresNonDefaultPrimaryKeyWithIndexes(),
+			expectedFields: map[string]string{
+				"user": `func (User) Fields() []ent.Field {
+	return []ent.Field{field.String("id").Unique().StorageKey("my_id")}
+}`,
+			},
+			expectedEdges: map[string]string{
+				`user`: `func (User) Edges() []ent.Edge {
+	return nil
+}`,
+			},
+			entities: []string{"user"},
+		},
+		{
 			name: "relation_m2m_two_types",
 			mock: MockPostgresM2MTwoTypes(),
 			expectedFields: map[string]string{

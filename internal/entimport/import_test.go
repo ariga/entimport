@@ -2359,6 +2359,67 @@ func MockPostgresNonDefaultPrimaryKey() *schema.Schema {
 	}
 }
 
+func MockPostgresNonDefaultPrimaryKeyWithIndexes() *schema.Schema {
+	table := &schema.Table{
+		Name: "users",
+		Columns: []*schema.Column{
+			{
+				Name: "my_id",
+				Type: &schema.ColumnType{
+					Type: &schema.StringType{T: "character varying", Size: 0},
+					Raw:  "character varying",
+					Null: false,
+				},
+			},
+		},
+	}
+	table.Indexes = []*schema.Index{
+		{
+			Name:   "users_my_id_uindex",
+			Unique: true,
+			Table:  table,
+			Parts: []*schema.IndexPart{
+				{
+					SeqNo: 1,
+					Attrs: []schema.Attr{
+						&postgres.IndexColumnProperty{
+							NullsFirst: false,
+							NullsLast:  true,
+						},
+					},
+					C: table.Columns[0],
+				},
+			},
+		},
+	}
+	table.PrimaryKey = &schema.Index{
+		Name:   "users_pkey",
+		Unique: true,
+		Table:  table,
+		Attrs: []schema.Attr{
+			&postgres.ConType{
+				T: "p",
+			},
+		},
+		Parts: []*schema.IndexPart{
+			{
+				SeqNo: 1,
+				Attrs: []schema.Attr{
+					&postgres.IndexColumnProperty{
+						NullsFirst: false,
+						NullsLast:  true,
+					},
+				},
+				C: table.Columns[0],
+			},
+		},
+	}
+	return &schema.Schema{
+		Name:   "test",
+		Tables: []*schema.Table{table},
+	}
+}
+
 func MockPostgresM2MTwoTypes() *schema.Schema {
 	tableA := &schema.Table{
 		Name: "groups",

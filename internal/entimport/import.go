@@ -297,7 +297,12 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 	}
 	for _, index := range table.Indexes {
 		if index.Unique && len(index.Parts) == 1 {
-			fields[index.Parts[0].C.Name].Descriptor().Unique = true
+			col := index.Parts[0].C.Name
+			if desc := pk.Descriptor(); col == desc.StorageKey {
+				desc.Unique = true
+			} else {
+				fields[col].Descriptor().Unique = true
+			}
 		}
 	}
 	for _, fk := range table.ForeignKeys {

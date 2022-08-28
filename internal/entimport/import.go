@@ -263,10 +263,8 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 	upsert := &schemast.UpsertSchema{
 		Name: typeName(table.Name),
 	}
-	if tableName(table.Name) != table.Name {
-		upsert.Annotations = []entschema.Annotation{
-			entsql.Annotation{Table: table.Name},
-		}
+	upsert.Annotations = []entschema.Annotation{
+		entsql.Annotation{Table: table.Name},
 	}
 	fields := make(map[string]ent.Field, len(upsert.Fields))
 	for _, f := range upsert.Fields {

@@ -35,6 +35,7 @@ type (
 		uniqueEdgeFromParent bool
 		refName              string
 		edgeField            string
+		nullable             bool
 	}
 
 	// fieldFunc receives an Atlas column and converts it to an Ent field.
@@ -163,6 +164,9 @@ func entEdge(nodeName, nodeType string, currentNode *schemast.UpsertSchema, dir 
 		if opts.recursive {
 			desc.Name = "parent_" + desc.Name
 			desc.RefName = "child_" + desc.RefName
+		}
+		if !opts.nullable {
+			desc.Required = true
 		}
 	}
 	desc.Type = nodeType
@@ -314,6 +318,7 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 func applyColumnAttributes(f ent.Field, col *schema.Column) {
 	desc := f.Descriptor()
 	desc.Optional = col.Type.Null
+	desc.Nillable = col.Type.Null
 	for _, attr := range col.Attrs {
 		if a, ok := attr.(*schema.Comment); ok {
 			desc.Comment = a.Text
@@ -380,6 +385,7 @@ func upsertOneToX(mutations map[string]schemast.Mutator, table *schema.Table) {
 			uniqueEdgeFromParent: true,
 			refName:              tableName(child.Name),
 			edgeField:            colName,
+			nullable:             fk.Columns[0].Type.Null,
 		}
 		if child.Name == parent.Name {
 			opts.recursive = true

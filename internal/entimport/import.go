@@ -301,11 +301,10 @@ func upsertNode(field fieldFunc, table *schema.Table) (*schemast.UpsertSchema, e
 	for _, fk := range table.ForeignKeys {
 		for _, column := range fk.Columns {
 			// FK / Reference column
-			fld, ok := fields[column.Name]
+			_, ok := fields[column.Name]
 			if !ok {
 				return nil, fmt.Errorf("foreign key for column: %q doesn't exist in referenced table", column.Name)
 			}
-			fld.Descriptor().Optional = true
 		}
 	}
 	return upsert, err

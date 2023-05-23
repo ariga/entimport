@@ -1,6 +1,6 @@
 module ariga.io/entimport
 
-go 1.17
+go 1.20
 
 require (
 	ariga.io/atlas v0.3.8-0.20220314111236-b2171e04c5b2

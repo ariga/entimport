@@ -233,7 +233,7 @@ func isJoinTable(table *schema.Table) bool {
 }
 
 func typeName(tableName string) string {
-	return inflect.Camelize(inflect.Singularize(tableName))
+	return inflect.Camelize(tableName)
 }
 
 func tableName(typeName string) string {

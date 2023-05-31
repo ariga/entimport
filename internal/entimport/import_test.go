@@ -3,7 +3,6 @@ package entimport_test
 import (
 	"context"
 	"go/ast"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -1928,7 +1927,7 @@ func MockPostgresSingleTableFields() *schema.Schema {
 		Unique: true,
 		Table:  table,
 		Attrs: []schema.Attr{
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2011,7 +2010,7 @@ func MockPostgresTableFieldsWithAttributes() *schema.Schema {
 		Unique: true,
 		Table:  table,
 		Attrs: []schema.Attr{
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2195,7 +2194,7 @@ func MockPostgresMultiTableFields() *schema.Schema {
 		Unique: true,
 		Table:  tableA,
 		Attrs: []schema.Attr{
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2336,7 +2335,7 @@ func MockPostgresNonDefaultPrimaryKey() *schema.Schema {
 		Unique: true,
 		Table:  table,
 		Attrs: []schema.Attr{
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2397,7 +2396,7 @@ func MockPostgresNonDefaultPrimaryKeyWithIndexes() *schema.Schema {
 		Unique: true,
 		Table:  table,
 		Attrs: []schema.Attr{
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2458,7 +2457,7 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2523,7 +2522,7 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2597,7 +2596,7 @@ func MockPostgresM2MTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2679,7 +2678,7 @@ func MockPostgresM2MSameType() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2731,7 +2730,7 @@ func MockPostgresM2MSameType() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2835,7 +2834,7 @@ func MockPostgresM2MBidirectional() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -2900,7 +2899,7 @@ func MockPostgresM2MBidirectional() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3004,7 +3003,7 @@ func MockPostgresO2OTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3077,7 +3076,7 @@ func MockPostgresO2OTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3113,7 +3112,7 @@ func MockPostgresO2OTwoTypes() *schema.Schema {
 				&postgres.IndexType{
 					T: "btree",
 				},
-				&postgres.ConType{
+				&postgres.Constraint{
 					T: "u",
 				},
 			},
@@ -3192,7 +3191,7 @@ func MockPostgresO2OSameType() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3230,7 +3229,7 @@ func MockPostgresO2OSameType() *schema.Schema {
 				&postgres.IndexType{
 					T: "btree",
 				},
-				&postgres.ConType{
+				&postgres.Constraint{
 					T: "u",
 				},
 			},
@@ -3316,7 +3315,7 @@ func MockPostgresO2OBidirectional() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3354,7 +3353,7 @@ func MockPostgresO2OBidirectional() *schema.Schema {
 				&postgres.IndexType{
 					T: "btree",
 				},
-				&postgres.ConType{
+				&postgres.Constraint{
 					T: "u",
 				},
 			},
@@ -3429,7 +3428,7 @@ func MockPostgresO2MTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3494,7 +3493,7 @@ func MockPostgresO2MTwoTypes() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3581,7 +3580,7 @@ func MockPostgresO2MSameType() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3665,7 +3664,7 @@ func MockPostgresO2XOtherSideIgnored() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3730,7 +3729,7 @@ func MockPostgresO2XOtherSideIgnored() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3803,7 +3802,7 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3868,7 +3867,7 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3942,7 +3941,7 @@ func MockPostgresM2MJoinTableOnly() *schema.Schema {
 			&postgres.IndexType{
 				T: "btree",
 			},
-			&postgres.ConType{
+			&postgres.Constraint{
 				T: "p",
 			},
 		},
@@ -3980,10 +3979,6 @@ type inspectorMock struct {
 	mock.Mock
 }
 
-func (_m *inspectorMock) InspectTable(_ context.Context, _ string, _ *schema.InspectTableOptions) (*schema.Table, error) {
-	return nil, nil
-}
-
 func (_m *inspectorMock) InspectRealm(_ context.Context, _ *schema.InspectRealmOption) (*schema.Realm, error) {
 	return nil, nil
 }
@@ -4007,7 +4002,7 @@ func (_m *inspectorMock) InspectSchema(ctx context.Context, name string, opts *s
 }
 
 func createTempDir(t *testing.T) string {
-	tmpDir, err := ioutil.TempDir("", "entimport-*")
+	tmpDir, err := os.MkdirTemp("", "entimport-*")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err = os.RemoveAll(tmpDir)

@@ -8,7 +8,6 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -1153,7 +1152,7 @@ create table user_groups
 
 func createTempDir(t *testing.T) string {
 	r := require.New(t)
-	tmpDir, err := ioutil.TempDir("", "entimport-*")
+	tmpDir, err := os.MkdirTemp("", "entimport-*")
 	r.NoError(err)
 	t.Cleanup(func() {
 		err = os.RemoveAll(tmpDir)
